@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard (Google Sheets → CSV)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#101a33;
+      --panel2:#0f1730;
+      --text:#eaf0ff;
+      --muted:#a9b6d6;
+      --border:rgba(255,255,255,.10);
+      --shadow: 0 18px 45px rgba(0,0,0,.35);
+      --radius:16px;
+      --radius2:12px;
+      --gap:14px;
+      --warn:#ffcc66;
+      --ok:#7CFFB2;
+      --bad:#ff6b6b;
+      --accent:#7aa8ff;
+      --accent2:#b67bff;
+      --chip:rgba(122,168,255,.14);
+      --chipBorder:rgba(122,168,255,.28);
+      --tableStripe:rgba(255,255,255,.03);
+      --focus:rgba(122,168,255,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 15% 0%, rgba(122,168,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 85% 10%, rgba(182,123,255,.16), transparent 58%),
+        radial-gradient(700px 450px at 50% 100%, rgba(124,255,178,.08), transparent 60%),
+        linear-gradient(180deg, #070a14 0%, #0b1020 60%, #070a14 100%);
+    }
+    a{ color:inherit; }
+    .wrap{ max-width:1320px; margin:0 auto; padding:22px 16px 36px; }
+    .topbar{
+      display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+      margin-bottom:18px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .title h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .badge{
+      font-size:12px;
+      padding:4px 9px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+    }
+    .sub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+    .actions{
+      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+    }
+    .btn{
+      appearance:none; border:1px solid var(--border); color:var(--text);
+      background:rgba(255,255,255,.05);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      box-shadow:none;
+      transition: transform .06s ease, border-color .2s ease, background .2s ease;
+      font-weight:600;
+      font-size:13px;
+      display:flex; align-items:center; gap:8px;
+      user-select:none;
+    }
+    .btn:hover{ border-color:rgba(122,168,255,.45); background:rgba(122,168,255,.08); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color:rgba(122,168,255,.55);
+      background:linear-gradient(180deg, rgba(122,168,255,.18), rgba(122,168,255,.10));
+    }
+    .btn.danger:hover{ border-color:rgba(255,107,107,.55); background:rgba(255,107,107,.08); }
+    .grid{
+      display:grid;
+      grid-template-columns: 370px 1fr;
+      gap:var(--gap);
+      align-items:start;
+    }
+    @media (max-width: 1020px){
+      .grid{ grid-template-columns: 1fr; }
+      .actions{ justify-content:flex-start; }
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+    }
+    .card .hd .h{
+      display:flex; flex-direction:column; gap:3px;
+    }
+    .card .hd .h .t{
+      font-weight:800; letter-spacing:.2px; font-size:13px;
+    }
+    .card .hd .h .d{
+      color:var(--muted); font-size:12px;
+    }
+    .card .bd{ padding:14px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    label{ font-size:12px; color:var(--muted); display:block; margin:0 0 6px; }
+    .field{
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    input[type="text"], input[type="url"], input[type="date"], select{
+      width:100%;
+      padding:10px 11px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(8,12,25,.55);
+      color:var(--text);
+      outline:none;
+      transition:border-color .2s ease, box-shadow .2s ease;
+    }
+    input[type="text"]:focus, input[type="url"]:focus, input[type="date"]:focus, select:focus{
+      border-color:rgba(122,168,255,.6);
+      box-shadow:0 0 0 4px var(--focus);
+    }
+    .help{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .help code{ font-family:var(--mono); font-size:11px; color:#dbe6ff; }
+    .chips{
+      display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
+    }
+    .chip{
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--chip);
+      border:1px solid var(--chipBorder);
+      font-size:12px;
+      color:#dbe6ff;
+      display:flex; align-items:center; gap:8px;
+    }
+    .dot{ width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.35); }
+    .dot.ok{ background:rgba(124,255,178,.85); }
+    .dot.warn{ background:rgba(255,204,102,.9); }
+    .dot.bad{ background:rgba(255,107,107,.85); }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:var(--gap);
+    }
+    @media (max-width: 1020px){
+      .kpis{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px){
+      .kpis{ grid-template-columns: 1fr; }
+    }
+    .kpi{
+      padding:14px;
+      border-radius:var(--radius);
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+      min-height:92px;
+      display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .kpi .k{ color:var(--muted); font-size:12px; }
+    .kpi .v{ font-weight:900; font-size:18px; letter-spacing:.2px; }
+    .kpi .s{ color:var(--muted); font-size:12px; margin-top:4px; }
+    .kpi .mini{ font-family:var(--mono); font-size:11px; opacity:.9; }
+
+    .main{
+      display:grid;
+      grid-template-rows: auto auto;
+      gap:var(--gap);
+    }
+    .chartWrap{
+      height:380px;
+    }
+    @media (max-width: 520px){
+      .chartWrap{ height:330px; }
+    }
+
+    .tableWrap{
+      overflow:auto;
+      border-radius:var(--radius);
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(10,14,28,.35);
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width:860px;
+      font-size:13px;
+    }
+    thead th{
+      position:sticky; top:0;
+      background:rgba(16,26,51,.95);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      padding:10px 10px;
+      text-align:left;
+      color:#dbe6ff;
+      font-size:12px;
+      letter-spacing:.2px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    thead th:hover{ background:rgba(16,26,51,.98); }
+    tbody td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      color:rgba(234,240,255,.92);
+      white-space:nowrap;
+    }
+    tbody tr:nth-child(odd) td{ background:var(--tableStripe); }
+    .tfoot{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:10px 12px;
+      border-top:1px solid rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(16,26,51,.55);
+    }
+    .pager{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .pager .btn{ padding:7px 10px; border-radius:10px; font-size:12px; }
+    .mono{ font-family:var(--mono); }
+    .notice{
+      margin-top:10px;
+      border-radius:14px;
+      border:1px dashed rgba(255,204,102,.35);
+      background:rgba(255,204,102,.08);
+      padding:10px 12px;
+      color:rgba(255,233,195,.95);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .error{
+      border-color:rgba(255,107,107,.40);
+      background:rgba(255,107,107,.10);
+      color:rgba(255,220,220,.98);
+    }
+    .small{
+      font-size:12px; color:var(--muted);
+    }
+    .sep{ height:1px; background:rgba(255,255,255,.07); margin:12px 0; }
+    .inline{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width:520px){
+      .inline{ grid-template-columns: 1fr; }
+    }
+    .muted{ color:var(--muted); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>
+          Dashboard Google Sheets → CSV
+          <span class="badge">Papa Parse + ApexCharts</span>
+        </h1>
+        <div class="sub">
+          Carrega dados via CSV exportado do Google Sheets, permite filtros, KPIs, tabela e gráficos (inclui Treemap e Heatmap).
+          <span class="mono muted">Tudo em um único HTML.</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnLoad">🔄 Carregar / Recarregar</button>
+        <button class="btn" id="btnDemo">✨ Usar dados de exemplo</button>
+        <button class="btn danger" id="btnReset">🧹 Resetar filtros</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: CONTROLS -->
+      <div class="card">
+        <div class="hd">
+          <div class="h">
+            <div class="t">Fonte & Controles</div>
+            <div class="d">URL CSV + mapeamento simples</div>
+          </div>
+          <div class="chip" title="Status de carregamento">
+            <span class="dot warn" id="statusDot"></span>
+            <span id="statusText">Aguardando</span>
+          </div>
+        </div>
+
+        <div class="bd">
+          <div class="field">
+            <label>URL do CSV (Google Sheets)</label>
+            <input id="csvUrl" type="url" spellcheck="false" placeholder="Cole aqui a URL CSV (gviz out:csv)" />
+            <div class="help">
+              Recomendado: <code>https://docs.google.com/spreadsheets/d/&lt;ID&gt;/gviz/tq?tqx=out:csv&sheet=&lt;ABA&gt;</code>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="inline">
+            <div class="field">
+              <label>Coluna de data (opcional)</label>
+              <select id="dateCol"></select>
+            </div>
+            <div class="field">
+              <label>Métrica (numérica)</label>
+              <select id="metricCol"></select>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field">
+              <label>Dimensão (categoria)</label>
+              <select id="dimCol"></select>
+            </div>
+            <div class="field">
+              <label>Tipo de gráfico</label>
+              <select id="chartType">
+                <option value="bar">Barras</option>
+                <option value="line">Linha</option>
+                <option value="area">Área</option>
+                <option value="pie">Pizza</option>
+                <option value="donut">Rosca</option>
+                <option value="treemap">Treemap</option>
+                <option value="heatmap">Heatmap</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="inline">
+            <div class="field">
+              <label>Data inicial</label>
+              <input id="dateFrom" type="date" />
+            </div>
+            <div class="field">
+              <label>Data final</label>
+              <input id="dateTo" type="date" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:10px;">
+            <label>Busca (texto em qualquer coluna)</label>
+            <input id="search" type="text" placeholder="Ex.: cliente, produto, cidade..." />
+          </div>
+
+          <div class="inline" style="margin-top:10px;">
+            <div class="field">
+              <label>Filtro rápido (coluna)</label>
+              <select id="quickFilterCol"></select>
+            </div>
+            <div class="field">
+              <label>Valor</label>
+              <select id="quickFilterVal"></select>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="inline">
+            <div class="field">
+              <label>Heatmap: eixo X</label>
+              <select id="heatX"></select>
+            </div>
+            <div class="field">
+              <label>Heatmap: eixo Y</label>
+              <select id="heatY"></select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <button class="btn primary" id="btnApply">📊 Aplicar filtros</button>
+            <button class="btn" id="btnExport">⬇️ Exportar CSV (filtrado)</button>
+          </div>
+
+          <div class="chips" id="chips"></div>
+
+          <div class="notice" id="noticeBox" style="display:none;"></div>
+
+          <div class="notice" style="margin-top:12px;">
+            <strong>Nota:</strong> se sua planilha exigir login, o CSV pode falhar por CORS/autorização.
+            A solução mais simples é <em>publicar na web</em> ou tornar acessível por link (ver instruções no fim desta resposta).
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: MAIN -->
+      <div class="main">
+        <div class="kpis" id="kpis"></div>
+
+        <div class="card">
+          <div class="hd">
+            <div class="h">
+              <div class="t">Visualização</div>
+              <div class="d" id="vizSubtitle">—</div>
+            </div>
+            <div class="row">
+              <span class="badge" id="rowsBadge">0 linhas</span>
+              <span class="badge" id="colsBadge">0 colunas</span>
+            </div>
+          </div>
+
+          <div class="bd">
+            <div class="chartWrap" id="chart"></div>
+            <div class="sep"></div>
+
+            <div class="tableWrap">
+              <table id="dataTable">
+                <thead><tr id="thead"></tr></thead>
+                <tbody id="tbody"></tbody>
+              </table>
+              <div class="tfoot">
+                <div id="tfootInfo">—</div>
+                <div class="pager">
+                  <button class="btn" id="prevPage">◀</button>
+                  <span class="mono" id="pageInfo">1 / 1</span>
+                  <button class="btn" id="nextPage">▶</button>
+                  <select id="pageSize" title="Linhas por página">
+                    <option>10</option>
+                    <option selected>20</option>
+                    <option>50</option>
+                    <option>100</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="small" style="margin-top:10px;">
+              Clique nos cabeçalhos para ordenar. Exporta o CSV do conjunto filtrado.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CDN: Papa Parse + ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1"></script>
+
+  <script>
+    /**********************************************************************
+     * CONFIG RÁPIDA (AJUSTE MANUAL SE NECESSÁRIO)
+     * --------------------------------------------------------------------
+     * 1) COLE SUA URL CSV AQUI para já abrir carregado.
+     * 2) Se suas colunas tiverem nomes diferentes, basta selecionar nos dropdowns.
+     * 3) Se quiser "travar" um mapeamento (ex.: sempre usar coluna X), ajuste o
+     *    objeto DEFAULTS.
+     **********************************************************************/
+    const DEFAULTS = {
+        SOURCES: {
+             "Respostas ao formulário 1": "https://docs.google.com/spreadsheets/d/19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg/gviz/tq?tqx=out:csv&sheet=Respostas%20ao%20formul%C3%A1rio%201",
+             "Pontuação": "https://docs.google.com/spreadsheets/d/19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg/gviz/tq?tqx=out:csv&sheet=Pontua%C3%A7%C3%A3o",
+             "Classificação": "https://docs.google.com/spreadsheets/d/19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg/gviz/tq?tqx=out:csv&sheet=Classifica%C3%A7%C3%A3o"
+         },
+
+        DEFAULT_SOURCE_NAME: "Respostas ao formulário 1"
+    };
+
+     // SHEET_CSV_URL: "",
+
+      // Preferências iniciais (tentativa de auto-detecção)
+      PREFERRED_DATE_COL: ["data", "date", "dt", "created_at", "criado_em"],
+      PREFERRED_METRIC_COL: ["valor", "revenue", "amount", "total", "faturamento", "sales"],
+      PREFERRED_DIM_COL: ["categoria", "category", "produto", "product", "cliente", "customer", "cidade", "city"],
+
+      // Heatmap: limita categorias para manter simples/rápido (pode aumentar)
+      HEATMAP_TOP_X: 12,
+      HEATMAP_TOP_Y: 10,
+
+      // Treemap/Bar: limita dimensões
+      TOP_N_DIM: 20
+    };
+
+    /**********************************************************************
+     * DADOS (estado)
+     **********************************************************************/
+    let rawRows = [];         // rows originais (objetos)
+    let columns = [];         // nomes das colunas
+    let filteredRows = [];    // rows filtradas
+    let sortState = { col: null, dir: 1 }; // 1 asc, -1 desc
+    let pageState = { page: 1, size: 20 };
+    let chart = null;
+
+    /**********************************************************************
+     * UTILS
+     **********************************************************************/
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(type, text){
+      const dot = $("statusDot");
+      dot.className = "dot " + (type || "warn");
+      $("statusText").textContent = text || "";
+    }
+
+    function showNotice(msg, isError=false){
+      const box = $("noticeBox");
+      box.style.display = msg ? "block" : "none";
+      box.className = "notice" + (isError ? " error" : "");
+      box.innerHTML = msg || "";
+    }
+
+    function norm(s){
+      return String(s ?? "").trim();
+    }
+
+    function normKey(s){
+      return norm(s).toLowerCase();
+    }
+
+    function toNumber(v){
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      // aceita "1.234,56" e "1234.56"
+      const cleaned = s
+        .replace(/\s/g,"")
+        .replace(/\.(?=\d{3}(\D|$))/g,"") // remove separador milhar "."
+        .replace(/,(?=\d{1,2}(\D|$))/g,"."); // troca "," decimal por "."
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function toDate(v){
+      const s = norm(v);
+      if (!s) return null;
+
+      // tenta ISO direto
+      const d1 = new Date(s);
+      if (!isNaN(d1)) return d1;
+
+      // tenta dd/mm/yyyy ou dd-mm-yyyy
+      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+.*)?$/);
+      if (m){
+        const dd = parseInt(m[1],10);
+        const mm = parseInt(m[2],10) - 1;
+        let yy = parseInt(m[3],10);
+        if (yy < 100) yy += 2000;
+        const d2 = new Date(yy, mm, dd);
+        if (!isNaN(d2)) return d2;
+      }
+      return null;
+    }
+
+    function formatNumber(n){
+      if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+      return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    }
+
+    function formatDate(d){
+      if (!(d instanceof Date) || isNaN(d)) return "—";
+      return d.toLocaleDateString("pt-BR");
+    }
+
+    function uniqueValues(rows, col){
+      const set = new Set();
+      for (const r of rows){
+        const v = norm(r[col]);
+        if (v) set.add(v);
+      }
+      return Array.from(set).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    }
+
+    function guessColumn(preferredNames, candidates){
+      // tenta match por nome (case-insensitive), depois por includes
+      const candNorm = candidates.map(c => ({ c, k: normKey(c) }));
+      for (const p of preferredNames){
+        const pk = normKey(p);
+        const exact = candNorm.find(x => x.k === pk);
+        if (exact) return exact.c;
+      }
+      for (const p of preferredNames){
+        const pk = normKey(p);
+        const inc = candNorm.find(x => x.k.includes(pk));
+        if (inc) return inc.c;
+      }
+      return "";
+    }
+
+    function isMostlyNumeric(rows, col){
+      // considera numérica se >= 60% dos valores não-vazios viram número
+      let nonEmpty = 0, ok = 0;
+      for (const r of rows){
+        const v = norm(r[col]);
+        if (!v) continue;
+        nonEmpty++;
+        if (toNumber(v) !== null) ok++;
+      }
+      if (nonEmpty === 0) return false;
+      return (ok / nonEmpty) >= 0.6;
+    }
+
+    function isMostlyDate(rows, col){
+      let nonEmpty = 0, ok = 0;
+      for (const r of rows){
+        const v = norm(r[col]);
+        if (!v) continue;
+        nonEmpty++;
+        if (toDate(v)) ok++;
+      }
+      if (nonEmpty === 0) return false;
+      return (ok / nonEmpty) >= 0.6;
+    }
+
+    function safeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[ch]));
+    }
+
+    function downloadText(filename, text){
+      const blob = new Blob([text], { type:"text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    /**********************************************************************
+     * UI POPULATE
+     **********************************************************************/
+    function setSelectOptions(sel, opts, placeholder="(nenhum)"){
+      sel.innerHTML = "";
+      const o0 = document.createElement("option");
+      o0.value = "";
+      o0.textContent = placeholder;
+      sel.appendChild(o0);
+      for (const v of opts){
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        sel.appendChild(o);
+      }
+    }
+
+    function rebuildSelectors(){
+      // todas colunas
+      const cols = columns.slice();
+
+      setSelectOptions($("dateCol"), cols, "(sem coluna de data)");
+      setSelectOptions($("metricCol"), cols, "(selecione uma métrica)");
+      setSelectOptions($("dimCol"), cols, "(selecione uma dimensão)");
+
+      // quick filter: apenas colunas textuais (não-numéricas) por padrão
+      const textCols = cols.filter(c => !isMostlyNumeric(rawRows, c));
+      setSelectOptions($("quickFilterCol"), textCols, "(opcional)");
+
+      // heatmap axes: colunas textuais
+      setSelectOptions($("heatX"), textCols, "(selecione X)");
+      setSelectOptions($("heatY"), textCols, "(selecione Y)");
+
+      // tenta auto-seleção
+      const guessedDate = guessColumn(DEFAULTS.PREFERRED_DATE_COL, cols);
+      const guessedMetric = guessColumn(DEFAULTS.PREFERRED_METRIC_COL, cols) || cols.find(c=>isMostlyNumeric(rawRows,c)) || "";
+      const guessedDim = guessColumn(DEFAULTS.PREFERRED_DIM_COL, cols) || cols.find(c=>!isMostlyNumeric(rawRows,c) && !isMostlyDate(rawRows,c)) || cols[0] || "";
+
+      if (guessedDate && isMostlyDate(rawRows, guessedDate)) $("dateCol").value = guessedDate;
+      if (guessedMetric) $("metricCol").value = guessedMetric;
+      if (guessedDim) $("dimCol").value = guessedDim;
+
+      // heatmap defaults (se possível)
+      const remainingText = textCols.filter(c => c !== $("dimCol").value);
+      $("heatX").value = $("dimCol").value || remainingText[0] || "";
+      $("heatY").value = remainingText[0] || remainingText[1] || "";
+
+      // quick filter values
+      rebuildQuickValues();
+    }
+
+    function rebuildQuickValues(){
+      const col = $("quickFilterCol").value;
+      if (!col){
+        setSelectOptions($("quickFilterVal"), [], "(sem filtro)");
+        return;
+      }
+      const vals = uniqueValues(rawRows, col);
+      setSelectOptions($("quickFilterVal"), vals, "(qualquer)");
+    }
+
+    function updateBadges(){
+      $("rowsBadge").textContent = `${filteredRows.length.toLocaleString("pt-BR")} linhas`;
+      $("colsBadge").textContent = `${columns.length} colunas`;
+    }
+
+    function rebuildChips(filters){
+      const chips = $("chips");
+      chips.innerHTML = "";
+      const entries = Object.entries(filters).filter(([,v]) => v !== null && v !== "" && v !== undefined);
+
+      if (!entries.length){
+        const c = document.createElement("div");
+        c.className = "chip";
+        c.innerHTML = `<span class="dot warn"></span><span>Sem filtros ativos</span>`;
+        chips.appendChild(c);
+        return;
+      }
+      for (const [k,v] of entries){
+        const c = document.createElement("div");
+        c.className = "chip";
+        c.innerHTML = `<span class="dot ok"></span><span>${safeHtml(k)}: <span class="mono">${safeHtml(String(v))}</span></span>`;
+        chips.appendChild(c);
+      }
+    }
+
+    /**********************************************************************
+     * CARREGAR CSV (Papa Parse)
+     **********************************************************************/
+    async function loadCsv(url){
+      showNotice("", false);
+      setStatus("warn", "Carregando…");
+
+      return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false,
+          complete: (results) => {
+            if (results.errors && results.errors.length){
+              console.warn(results.errors);
+              // Não falha necessariamente; pode haver linhas com problema
+            }
+            const data = results.data || [];
+            if (!data.length){
+              reject(new Error("CSV vazio (0 linhas). Verifique a URL e se a planilha está publicada/compartilhada."));
+              return;
+            }
+            resolve(data);
+          },
+          error: (err) => reject(err)
+        });
+      });
+    }
+
+    function useData(data){
+      rawRows = data.map(row => {
+        // normaliza chaves preservando nomes originais (assume header já bom)
+        return row;
+      });
+
+      columns = Object.keys(rawRows[0] || {});
+      if (!columns.length){
+        throw new Error("Não foi possível detectar colunas (verifique o cabeçalho da planilha).");
+      }
+
+      // limpeza: garante que todas as linhas tenham todas colunas
+      rawRows = rawRows.map(r => {
+        const obj = {};
+        for (const c of columns) obj[c] = r[c] ?? "";
+        return obj;
+      });
+
+      // popula selects
+      rebuildSelectors();
+
+      // set dates range se tiver coluna de data
+      const dcol = $("dateCol").value;
+      if (dcol && isMostlyDate(rawRows, dcol)){
+        const dates = rawRows.map(r => toDate(r[dcol])).filter(Boolean).sort((a,b)=>a-b);
+        if (dates.length){
+          const min = dates[0], max = dates[dates.length-1];
+          $("dateFrom").value = toISODate(min);
+          $("dateTo").value = toISODate(max);
+        }
+      } else {
+        $("dateFrom").value = "";
+        $("dateTo").value = "";
+      }
+
+      // aplica filtros iniciais
+      applyFilters();
+
+      setStatus("ok", "Carregado");
+      $("vizSubtitle").textContent = "Dados carregados e prontos para explorar.";
+    }
+
+    function toISODate(d){
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    /**********************************************************************
+     * FILTRAGEM
+     **********************************************************************/
+    function applyFilters(){
+      const dateCol = $("dateCol").value;
+      const metricCol = $("metricCol").value;
+      const dimCol = $("dimCol").value;
+
+      const from = $("dateFrom").value ? new Date($("dateFrom").value + "T00:00:00") : null;
+      const to = $("dateTo").value ? new Date($("dateTo").value + "T23:59:59") : null;
+      const q = norm($("search").value).toLowerCase();
+
+      const qfCol = $("quickFilterCol").value;
+      const qfVal = $("quickFilterVal").value;
+
+      const filters = {
+        "Data": dateCol ? dateCol : "(sem)",
+        "Métrica": metricCol || "(não selecionada)",
+        "Dimensão": dimCol || "(não selecionada)",
+        "De": from ? formatDate(from) : "",
+        "Até": to ? formatDate(to) : "",
+        "Busca": q ? q : "",
+        "Filtro": qfCol ? `${qfCol} = ${qfVal || "(qualquer)"}` : ""
+      };
+      rebuildChips(filters);
+
+      filteredRows = rawRows.filter(r => {
+        // date range
+        if (dateCol && from && to){
+          const d = toDate(r[dateCol]);
+          if (!d) return false;
+          if (d < from || d > to) return false;
+        }
+
+        // quick filter
+        if (qfCol && qfVal){
+          if (norm(r[qfCol]) !== qfVal) return false;
+        }
+
+        // search any column
+        if (q){
+          let ok = false;
+          for (const c of columns){
+            const v = norm(r[c]).toLowerCase();
+            if (v && v.includes(q)) { ok = true; break; }
+          }
+          if (!ok) return false;
+        }
+
+        return true;
+      });
+
+      // reset paging/sorting if needed
+      pageState.page = 1;
+
+      // KPIs, chart, table
+      updateBadges();
+      renderKpis(metricCol, dateCol);
+      renderChart();
+      renderTable();
+    }
+
+    function resetFilters(){
+      $("search").value = "";
+      $("quickFilterCol").value = "";
+      rebuildQuickValues();
+      $("quickFilterVal").value = "";
+
+      // não apaga mapeamento de colunas; só filtros
+      $("dateFrom").value = "";
+      $("dateTo").value = "";
+
+      applyFilters();
+    }
+
+    /**********************************************************************
+     * KPIs
+     **********************************************************************/
+    function renderKpis(metricCol, dateCol){
+      const box = $("kpis");
+      box.innerHTML = "";
+
+      const totalRows = filteredRows.length;
+
+      let sum = 0, countNum = 0;
+      if (metricCol){
+        for (const r of filteredRows){
+          const n = toNumber(r[metricCol]);
+          if (n !== null){
+            sum += n;
+            countNum++;
+          }
+        }
+      }
+      const avg = countNum ? (sum / countNum) : null;
+
+      // range de datas (se houver)
+      let dateMin = null, dateMax = null;
+      if (dateCol){
+        for (const r of filteredRows){
+          const d = toDate(r[dateCol]);
+          if (!d) continue;
+          if (!dateMin || d < dateMin) dateMin = d;
+          if (!dateMax || d > dateMax) dateMax = d;
+        }
+      }
+
+      const kpis = [
+        { k:"Linhas (filtradas)", v: totalRows.toLocaleString("pt-BR"), s:"Quantidade de registros após filtros" },
+        { k:"Soma da métrica", v: metricCol ? formatNumber(sum) : "—", s: metricCol ? `Coluna: ${metricCol}` : "Selecione uma métrica numérica" },
+        { k:"Média da métrica", v: metricCol ? formatNumber(avg) : "—", s: metricCol ? `${countNum.toLocaleString("pt-BR")} valores numéricos` : "—" },
+        { k:"Período (min → max)", v: (dateMin && dateMax) ? `${formatDate(dateMin)} → ${formatDate(dateMax)}` : "—", s: dateCol ? `Coluna: ${dateCol}` : "Selecione uma coluna de data (opcional)", mono:true }
+      ];
+
+      for (const item of kpis){
+        const el = document.createElement("div");
+        el.className = "kpi";
+        el.innerHTML = `
+          <div class="k">${safeHtml(item.k)}</div>
+          <div class="v ${item.mono ? "mini" : ""}">${safeHtml(item.v)}</div>
+          <div class="s">${safeHtml(item.s)}</div>
+        `;
+        box.appendChild(el);
+      }
+    }
+
+    /**********************************************************************
+     * AGREGAÇÃO
+     **********************************************************************/
+    function aggregateByDim(rows, dimCol, metricCol){
+      const map = new Map();
+      for (const r of rows){
+        const key = norm(r[dimCol]) || "(vazio)";
+        const n = metricCol ? toNumber(r[metricCol]) : null;
+        const inc = (n === null ? 1 : n); // se métrica inválida, conta 1
+        map.set(key, (map.get(key) || 0) + inc);
+      }
+
+      const arr = Array.from(map.entries()).map(([k,v]) => ({ k, v }));
+      arr.sort((a,b)=> b.v - a.v);
+      return arr.slice(0, DEFAULTS.TOP_N_DIM);
+    }
+
+    function aggregateByDate(rows, dateCol, metricCol){
+      const map = new Map(); // yyyy-mm-dd -> value
+      for (const r of rows){
+        const d = toDate(r[dateCol]);
+        if (!d) continue;
+        const iso = toISODate(d);
+        const n = metricCol ? toNumber(r[metricCol]) : null;
+        const inc = (n === null ? 1 : n);
+        map.set(iso, (map.get(iso) || 0) + inc);
+      }
+      const arr = Array.from(map.entries()).map(([k,v]) => ({ k, v }));
+      arr.sort((a,b)=> a.k.localeCompare(b.k));
+      return arr;
+    }
+
+    function buildHeatmap(rows, xCol, yCol, metricCol){
+      // pega top X/Y por frequência (ou soma)
+      const xAgg = aggregateByDim(rows, xCol, null).map(x => x.k).slice(0, DEFAULTS.HEATMAP_TOP_X);
+      const yAgg = aggregateByDim(rows, yCol, null).map(y => y.k).slice(0, DEFAULTS.HEATMAP_TOP_Y);
+
+      const matrix = new Map(); // y -> Map(x -> value)
+      for (const y of yAgg) matrix.set(y, new Map());
+
+      for (const r of rows){
+        const x = norm(r[xCol]) || "(vazio)";
+        const y = norm(r[yCol]) || "(vazio)";
+        if (!xAgg.includes(x) || !yAgg.includes(y)) continue;
+
+        const n = metricCol ? toNumber(r[metricCol]) : null;
+        const inc = (n === null ? 1 : n);
+        const rowMap = matrix.get(y);
+        rowMap.set(x, (rowMap.get(x) || 0) + inc);
+      }
+
+      const series = yAgg.map(y => {
+        const rowMap = matrix.get(y) || new Map();
+        return {
+          name: y,
+          data: xAgg.map(x => ({ x, y: rowMap.get(x) || 0 }))
+        };
+      });
+
+      return { xCategories: xAgg, yCategories: yAgg, series };
+    }
+
+    /**********************************************************************
+     * GRÁFICO (ApexCharts)
+     **********************************************************************/
+    function renderChart(){
+      const type = $("chartType").value;
+      const dateCol = $("dateCol").value;
+      const metricCol = $("metricCol").value;
+      const dimCol = $("dimCol").value;
+
+      const subtitle = [];
+      if (type === "heatmap"){
+        subtitle.push(`Heatmap: ${$("heatY").value || "Y"} × ${$("heatX").value || "X"}`);
+      } else if (type === "treemap"){
+        subtitle.push(`Treemap por: ${dimCol || "—"}`);
+      } else if (type === "pie" || type === "donut" || type === "bar"){
+        subtitle.push(`Por: ${dimCol || "—"}`);
+      } else if (type === "line" || type === "area"){
+        // se tiver data selecionada, prioriza série temporal; senão usa dimensão
+        subtitle.push(dateCol ? `Por data: ${dateCol}` : `Por: ${dimCol || "—"}`);
+      }
+      subtitle.push(metricCol ? `Métrica: ${metricCol}` : "Métrica: (contagem)");
+      $("vizSubtitle").textContent = subtitle.join(" • ");
+
+      // destrói anterior
+      if (chart){
+        chart.destroy();
+        chart = null;
+      }
+
+      // validações mínimas
+      if (filteredRows.length === 0){
+        $("chart").innerHTML = `<div class="notice error">Sem dados para exibir com os filtros atuais.</div>`;
+        return;
+      }
+      if ((type !== "heatmap") && (type !== "line" && type !== "area") && !dimCol){
+        $("chart").innerHTML = `<div class="notice error">Selecione uma <strong>dimensão</strong> para este tipo de gráfico.</div>`;
+        return;
+      }
+      if ((type === "heatmap") && (!$("heatX").value || !$("heatY").value)){
+        $("chart").innerHTML = `<div class="notice error">Selecione <strong>Heatmap X</strong> e <strong>Heatmap Y</strong>.</div>`;
+        return;
+      }
+
+      // prepara options
+      const base = {
+        chart: {
+          height: "100%",
+          type: (type === "treemap" || type === "heatmap") ? type : (type === "donut" ? "donut" : type),
+          toolbar: { show: true },
+          animations: { enabled: true }
+        },
+        theme: { mode: "dark" },
+        grid: { borderColor: "rgba(255,255,255,.08)" },
+        dataLabels: { enabled: false },
+        stroke: { width: 2 },
+        tooltip: {
+          y: {
+            formatter: (val) => formatNumber(val)
+          }
+        },
+        legend: { labels: { colors: "#dbe6ff" } }
+      };
+
+      // monta dados por tipo
+      let options = {};
+      if (type === "heatmap"){
+        const xCol = $("heatX").value;
+        const yCol = $("heatY").value;
+
+        const hm = buildHeatmap(filteredRows, xCol, yCol, metricCol);
+        options = {
+          ...base,
+          plotOptions: {
+            heatmap: {
+              shadeIntensity: 0.5,
+              radius: 2,
+              useFillColorAsStroke: false
+            }
+          },
+          xaxis: { categories: hm.xCategories, labels:{ style:{ colors:"#a9b6d6" } } },
+          yaxis: { labels:{ style:{ colors:"#a9b6d6" } } },
+          series: hm.series
+        };
+      }
+      else if (type === "treemap"){
+        const agg = aggregateByDim(filteredRows, dimCol, metricCol);
+        options = {
+          ...base,
+          plotOptions: {
+            treemap: {
+              enableShades: true,
+              shadeIntensity: 0.45,
+              distributed: false
+            }
+          },
+          series: [{
+            data: agg.map(a => ({ x: a.k, y: a.v }))
+          }]
+        };
+      }
+      else if (type === "pie" || type === "donut"){
+        const agg = aggregateByDim(filteredRows, dimCol, metricCol);
+        options = {
+          ...base,
+          chart: { ...base.chart, type: type },
+          labels: agg.map(a=>a.k),
+          series: agg.map(a=>a.v),
+          dataLabels: { enabled: true },
+          tooltip: { y: { formatter: (val)=>formatNumber(val) } }
+        };
+      }
+      else if (type === "line" || type === "area"){
+        // se tem dateCol válido, usa time series; senão usa dimensão
+        if (dateCol && isMostlyDate(rawRows, dateCol)){
+          const agg = aggregateByDate(filteredRows, dateCol, metricCol);
+          options = {
+            ...base,
+            chart: { ...base.chart, type: type },
+            xaxis: { categories: agg.map(a=>a.k), labels:{ style:{ colors:"#a9b6d6" } } },
+            series: [{ name: metricCol || "Contagem", data: agg.map(a=>a.v) }]
+          };
+        } else {
+          const agg = aggregateByDim(filteredRows, dimCol, metricCol);
+          options = {
+            ...base,
+            chart: { ...base.chart, type: type },
+            xaxis: { categories: agg.map(a=>a.k), labels:{ style:{ colors:"#a9b6d6" } } },
+            series: [{ name: metricCol || "Contagem", data: agg.map(a=>a.v) }]
+          };
+        }
+      }
+      else {
+        // bar
+        const agg = aggregateByDim(filteredRows, dimCol, metricCol);
+        options = {
+          ...base,
+          chart: { ...base.chart, type: "bar" },
+          plotOptions: { bar: { borderRadius: 6, columnWidth: "55%" } },
+          xaxis: { categories: agg.map(a=>a.k), labels:{ style:{ colors:"#a9b6d6" } } },
+          series: [{ name: metricCol || "Contagem", data: agg.map(a=>a.v) }]
+        };
+      }
+
+      // render
+      $("chart").innerHTML = "";
+      chart = new ApexCharts($("chart"), options);
+      chart.render();
+    }
+
+    /**********************************************************************
+     * TABELA (com ordenação/paginação)
+     **********************************************************************/
+    function renderTable(){
+      const thead = $("thead");
+      const tbody = $("tbody");
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+
+      // headers
+      for (const col of columns){
+        const th = document.createElement("th");
+        const arrow = (sortState.col === col) ? (sortState.dir === 1 ? " ▲" : " ▼") : "";
+        th.innerHTML = `${safeHtml(col)}${arrow}`;
+        th.onclick = () => {
+          if (sortState.col === col) sortState.dir *= -1;
+          else { sortState.col = col; sortState.dir = 1; }
+          renderTable();
+        };
+        thead.appendChild(th);
+      }
+
+      // sorted rows
+      let rows = filteredRows.slice();
+      if (sortState.col){
+        const c = sortState.col;
+        const dir = sortState.dir;
+
+        // tenta ordenar por número, depois por data, senão texto
+        rows.sort((a,b) => {
+          const an = toNumber(a[c]);
+          const bn = toNumber(b[c]);
+          if (an !== null && bn !== null) return (an - bn) * dir;
+
+          const ad = toDate(a[c]);
+          const bd = toDate(b[c]);
+          if (ad && bd) return (ad - bd) * dir;
+
+          const as = norm(a[c]).toLowerCase();
+          const bs = norm(b[c]).toLowerCase();
+          return as.localeCompare(bs, "pt-BR") * dir;
+        });
+      }
+
+      // paging
+      const total = rows.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageState.size));
+      pageState.page = Math.min(pageState.page, totalPages);
+
+      const start = (pageState.page - 1) * pageState.size;
+      const end = start + pageState.size;
+      const slice = rows.slice(start, end);
+
+      // body
+      for (const r of slice){
+        const tr = document.createElement("tr");
+        for (const col of columns){
+          const td = document.createElement("td");
+          const v = r[col];
+
+          // format num/date melhorzinho
+          const n = toNumber(v);
+          if (n !== null && isMostlyNumeric(rawRows, col)){
+            td.textContent = formatNumber(n);
+          } else {
+            const d = toDate(v);
+            if (d && isMostlyDate(rawRows, col)){
+              td.textContent = formatDate(d);
+            } else {
+              td.textContent = norm(v);
+            }
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+
+      $("pageInfo").textContent = `${pageState.page} / ${totalPages}`;
+      $("tfootInfo").textContent =
+        total === 0
+          ? "Sem linhas."
+          : `Mostrando ${start+1}–${Math.min(end,total)} de ${total.toLocaleString("pt-BR")} linhas.`;
+
+      updateBadges();
+    }
+
+    /**********************************************************************
+     * EXPORT CSV (filtrado)
+     **********************************************************************/
+    function exportFilteredCsv(){
+      if (!filteredRows.length){
+        showNotice("Nada para exportar (0 linhas após filtros).", true);
+        return;
+      }
+      const csv = Papa.unparse(filteredRows, { quotes: false });
+      downloadText("dados_filtrados.csv", csv);
+      showNotice("Exportação iniciada: <strong>dados_filtrados.csv</strong>", false);
+    }
+
+    /**********************************************************************
+     * DEMO DATA (caso não queira Sheets agora)
+     **********************************************************************/
+    function demoData(){
+      const data = [];
+      const produtos = ["Assinatura", "Curso", "Consultoria", "E-book", "Suporte"];
+      const cidades = ["São Paulo", "Rio", "Belo Horizonte", "Curitiba", "Recife", "Brasília"];
+      const canais = ["Orgânico", "Pago", "Parceria", "Indicação"];
+      const start = new Date(2025, 9, 1); // 01/10/2025
+      for (let i=0;i<350;i++){
+        const d = new Date(start.getTime() + Math.floor(Math.random()*120)*86400000);
+        const valor = (Math.random()*1800 + 50) * (Math.random() > .85 ? 2.2 : 1);
+        data.push({
+          Data: toISODate(d),
+          Produto: produtos[Math.floor(Math.random()*produtos.length)],
+          Cidade: cidades[Math.floor(Math.random()*cidades.length)],
+          Canal: canais[Math.floor(Math.random()*canais.length)],
+          Valor: valor.toFixed(2)
+        });
+      }
+      return data;
+    }
+
+    /**********************************************************************
+     * EVENTOS
+     **********************************************************************/
+    $("btnLoad").addEventListener("click", async () => {
+      const url = $("csvUrl").value.trim();
+      if (!url){
+        showNotice("Cole uma URL CSV válida no campo <strong>URL do CSV</strong>.", true);
+        return;
+      }
+      try{
+        const data = await loadCsv(url);
+        useData(data);
+      } catch (e){
+        console.error(e);
+        setStatus("bad", "Erro");
+        showNotice(
+          `<strong>Falha ao carregar CSV.</strong><br/>
+           <span class="mono">${safeHtml(e.message || String(e))}</span><br/><br/>
+           <strong>Dicas rápidas:</strong><br/>
+           • A planilha precisa estar publicada/compartilhada para acesso anônimo.<br/>
+           • Teste a URL no navegador (janela anônima). Se pedir login, não vai funcionar aqui.<br/>
+           • Use o formato <span class="mono">/gviz/tq?tqx=out:csv&sheet=ABA</span>.`,
+          true
+        );
+      }
+    });
+
+    $("btnDemo").addEventListener("click", () => {
+      try{
+        $("csvUrl").value = "(modo exemplo)";
+        useData(demoData());
+        showNotice("Você está usando <strong>dados de exemplo</strong>. Para conectar ao Sheets, cole uma URL CSV real.", false);
+      } catch (e){
+        console.error(e);
+        showNotice("Erro ao carregar demo: " + safeHtml(e.message || String(e)), true);
+      }
+    });
+
+    $("btnReset").addEventListener("click", () => {
+      resetFilters();
+      showNotice("Filtros resetados (mapeamento de colunas mantido).", false);
+    });
+
+    $("btnApply").addEventListener("click", () => {
+      applyFilters();
+      showNotice("", false);
+    });
+
+    $("btnExport").addEventListener("click", () => exportFilteredCsv());
+
+    $("quickFilterCol").addEventListener("change", () => {
+      rebuildQuickValues();
+      $("quickFilterVal").value = "";
+    });
+
+    $("pageSize").addEventListener("change", () => {
+      pageState.size = parseInt($("pageSize").value, 10) || 20;
+      pageState.page = 1;
+      renderTable();
+    });
+
+    $("prevPage").addEventListener("click", () => {
+      pageState.page = Math.max(1, pageState.page - 1);
+      renderTable();
+    });
+
+    $("nextPage").addEventListener("click", () => {
+      const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageState.size));
+      pageState.page = Math.min(totalPages, pageState.page + 1);
+      renderTable();
+    });
+
+    // re-render chart when key selectors change (sem precisar apertar aplicar)
+    ["dateCol","metricCol","dimCol","chartType","heatX","heatY"].forEach(id=>{
+      $(id).addEventListener("change", () => {
+        // atualiza quick filter se o user mexer na coluna de quick filter
+        renderChart();
+        renderKpis($("metricCol").value, $("dateCol").value);
+      });
+    });
+
+    // init
+    (function init(){
+      setStatus("warn", "Aguardando");
+      $("csvUrl").value = DEFAULTS.SHEET_CSV_URL;
+
+      // se já tiver URL, carrega automaticamente
+      if (DEFAULTS.SHEET_CSV_URL){
+        $("btnLoad").click();
+      } else {
+        // deixa selects vazios até ter dados
+        ["dateCol","metricCol","dimCol","quickFilterCol","quickFilterVal","heatX","heatY"].forEach(id=>{
+          setSelectOptions($(id), [], "(carregue dados)");
+        });
+      }
+    })();
+
+    /**********************************************************************
+     * LIMITAÇÕES / AJUSTES MANUAIS (documentadas)
+     * --------------------------------------------------------------------
+     * 1) CORS/Auth: se a planilha não estiver publicada/aberta, o CSV falha.
+     * 2) Parsing de datas: cobre ISO e dd/mm/aaaa; formatos exóticos exigem ajuste em toDate().
+     * 3) Números: cobre 1.234,56 e 1234.56; casos muito específicos exigem ajuste em toNumber().
+     * 4) Heatmap/Treemap: implementações simplificadas (Top N categorias) para performance.
+     **********************************************************************/
+  </script>
+</body>
+</html>
