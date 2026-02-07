@@ -53,15 +53,21 @@
             border: 1px solid #ced4da;
         }
 
-        /* Cards e Layout */
+/* Cards e Layout */
         .card-custom {
             background: var(--color-card);
-            border: none;
-            border-radius: 12px;
+             border: none;
+             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: transform 0.2s;
-            height: 100%;
+             height: 100%;
             padding: 20px;
+    
+    /* CORREÇÃO DO CORTE DE CONTEÚDO */
+         display: flex;               /* Ativa o modo flexível */
+         flex-direction: column;      /* Garante: Título em cima, Número no meio */
+         justify-content: space-between; /* Distribui o espaço igualmente */
+         min-height: 180px;           /* AUMENTADO: Força altura mínima para não cortar o texto */
         }
         
         .card-custom:hover {
