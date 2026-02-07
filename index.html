@@ -11,7 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono&display=swap" rel="stylesheet">
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
   <style>
     :root {
@@ -441,6 +440,10 @@
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 9999;
+      background: rgba(255,255,255,0.95);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     
     .loading-spinner.active {
@@ -454,6 +457,14 @@
       width: 60px;
       height: 60px;
       animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    .loading-text {
+      margin-top: 15px;
+      text-align: center;
+      color: var(--color-text);
+      font-weight: 500;
     }
     
     @keyframes spin {
@@ -479,6 +490,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 300px;
     }
     
     @keyframes slideIn {
@@ -543,6 +555,20 @@
       display: block;
     }
     
+    .help-content h4 {
+      margin-top: 15px;
+      margin-bottom: 10px;
+      color: var(--color-accent);
+    }
+    
+    .help-content ul {
+      margin-left: 20px;
+    }
+    
+    .help-content li {
+      margin-bottom: 8px;
+    }
+    
     /* Responsive */
     @media (max-width: 768px) {
       .charts-grid {
@@ -598,6 +624,7 @@
   <!-- Loading Spinner -->
   <div class="loading-spinner" id="loadingSpinner">
     <div class="spinner"></div>
+    <div class="loading-text">Carregando dados...</div>
   </div>
   
   <!-- Toast Container -->
@@ -879,35 +906,40 @@
     <div class="help-section">
       <div class="help-toggle" onclick="toggleHelp()">
         <i class="fas fa-question-circle"></i>
-        <span>📖 Como Usar Este Dashboard</span>
+        <span>📖 Como Configurar a Planilha</span>
         <i class="fas fa-chevron-down" id="helpChevron"></i>
       </div>
       <div class="help-content" id="helpContent">
-        <h4>1. Preparação da planilha:</h4>
+        <h4>1. Publicar a planilha como página web:</h4>
         <ul>
-          <li>Compartilhar planilha: "Qualquer pessoa com o link"</li>
-          <li>Configurar como "Visualizador"</li>
-          <li>Não mover/renomear as abas principais</li>
+          <li>Abra a planilha no Google Sheets</li>
+          <li>Vá em <strong>Arquivo → Compartilhar → Publicar na Web</strong></li>
+          <li>Na primeira aba, selecione a aba "Respostas ao formulário 1"</li>
+          <li>Formato: <strong>Página da Web</strong></li>
+          <li>Clique em <strong>Publicar</strong></li>
+          <li>Repita o processo para as abas "Pontuação" e "Classificação"</li>
         </ul>
         
-        <h4>2. Filtros:</h4>
+        <h4>2. Alternativa: Usar CSV publicado</h4>
         <ul>
-          <li>Use filtros globais para segmentar análises</li>
-          <li>Clique em gráficos para drill-down</li>
-          <li>Busque respondentes específicos pelo e-mail</li>
+          <li>Vá em <strong>Arquivo → Compartilhar → Publicar na Web</strong></li>
+          <li>Selecione cada aba e escolha formato <strong>CSV</strong></li>
+          <li>Copie os links gerados</li>
+          <li>Cole os links no código JavaScript (veja instruções abaixo)</li>
         </ul>
         
-        <h4>3. Atualização:</h4>
+        <h4>3. Permissões de compartilhamento:</h4>
         <ul>
-          <li>Clique "Atualizar Dados" após modificar a planilha</li>
-          <li>Dashboard não atualiza automaticamente</li>
+          <li>Clique em <strong>"Compartilhar"</strong> (canto superior direito)</li>
+          <li>Altere para <strong>"Qualquer pessoa com o link"</strong></li>
+          <li>Permissão: <strong>"Visualizador"</strong></li>
         </ul>
         
         <h4>4. Troubleshooting:</h4>
         <ul>
-          <li>Erro ao carregar: Verificar permissões da planilha</li>
-          <li>Gráfico vazio: Verifique se há dados na aba correspondente</li>
-          <li>Dados desatualizados: Limpe cache do navegador</li>
+          <li><strong>Erro CORS:</strong> Certifique-se de que publicou como CSV ou página web</li>
+          <li><strong>Dados não carregam:</strong> Verifique se a planilha está pública</li>
+          <li><strong>Formato incorreto:</strong> Mantenha os nomes das abas exatos</li>
         </ul>
       </div>
     </div>
@@ -916,44 +948,52 @@
   <!-- Footer -->
   <footer>
     <div class="footer-actions">
-      <button class="btn-export" onclick="exportPDF()">
-        <i class="fas fa-file-pdf"></i> Exportar Dashboard (PDF)
-      </button>
       <button class="btn-export" onclick="exportCSV()">
         <i class="fas fa-file-csv"></i> Exportar Dados (CSV)
       </button>
-      <button class="btn-export" onclick="shareEmail()">
-        <i class="fas fa-envelope"></i> Enviar por E-mail
-      </button>
     </div>
     <div style="text-align: center; margin-top: 20px; color: var(--color-text-secondary); font-size: 0.85rem;">
-      Dashboard de Maturidade em IA v1.0 | Desenvolvido com Chart.js e Google Sheets API
+      Dashboard de Maturidade em IA v2.0 | Desenvolvido com Chart.js e Google Sheets
     </div>
   </footer>
 
   <script>
     // ============================================================
-    // CONFIGURAÇÃO DA GOOGLE SHEETS
+    // CONFIGURAÇÃO - ALTERE ESTAS URLs
     // ============================================================
-    // IMPORTANTE: Como configurar a Google Sheets API
-    // 1. Tornar planilha pública:
-    //    - Abrir planilha no Google Sheets
-    //    - Clicar "Compartilhar" > "Alterar para qualquer pessoa com o link"
-    //    - Selecionar "Visualizador"
-    //
-    // 2. Obter Sheet ID:
-    //    - URL da planilha: https://docs.google.com/spreadsheets/d/SHEET_ID/edit
-    //    - Copiar a parte "SHEET_ID"
-    //
-    // 3. Nome das abas:
-    //    - Devem corresponder exatamente aos nomes na planilha
-    //    - Cuidado com espaços e acentuação
+    // INSTRUÇÕES PARA OBTER AS URLs CORRETAS:
+    // 1. Abra sua planilha no Google Sheets
+    // 2. Vá em Arquivo → Compartilhar → Publicar na Web
+    // 3. Selecione cada aba individualmente
+    // 4. Escolha formato "Valores separados por vírgula (.csv)"
+    // 5. Clique em "Publicar"
+    // 6. Copie a URL gerada e cole abaixo
     // ============================================================
     
+    const SHEET_CONFIG = {
+      // Cole aqui a URL CSV da aba "Respostas ao formulário 1"
+      aba1: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUhCQ33P_AcMz7ZjOjWEXwyRJ7faDFAghTYI5j5tMjhrI8BvYtW8ERr2u2KqdRdvG1ZsN-3N8LuNGy/pub?output=csv',
+      
+      // Cole aqui a URL CSV da aba "Pontuação"
+      aba2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUhCQ33P_AcMz7ZjOjWEXwyRJ7faDFAghTYI5j5tMjhrI8BvYtW8ERr2u2KqdRdvG1ZsN-3N8LuNGy/pub?output=csv',
+      
+      // Cole aqui a URL CSV da aba "Classificação"
+      aba3: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRUhCQ33P_AcMz7ZjOjWEXwyRJ7faDFAghTYI5j5tMjhrI8BvYtW8ERr2u2KqdRdvG1ZsN-3N8LuNGy/pub?output=csv'
+    };
+    
+    // IMPORTANTE: Se você não tiver as URLs acima, use este método alternativo:
+    // Substitua SHEET_ID pelo ID da sua planilha e ajuste os gid conforme necessário
     const SHEET_ID = '19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg';
-    const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     
-    // Global data storage
+    // Função para construir URL de forma alternativa (caso as URLs acima não funcionem)
+    function buildSheetURL(gid) {
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+    }
+    
+    // ============================================================
+    // GLOBAL DATA STORAGE
+    // ============================================================
+    
     let dashboardData = {
       respondents: [],
       metadata: {
@@ -989,7 +1029,7 @@
       
       setTimeout(() => {
         toast.remove();
-      }, 3000);
+      }, 4000);
     }
     
     function toggleHelp() {
@@ -997,6 +1037,48 @@
       const chevron = document.getElementById('helpChevron');
       content.classList.toggle('active');
       chevron.style.transform = content.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
+      chevron.style.transition = 'transform 0.3s';
+    }
+    
+    // ============================================================
+    // CSV PARSING FUNCTION
+    // ============================================================
+    
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const data = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        
+        const values = [];
+        let currentValue = '';
+        let insideQuotes = false;
+        
+        for (let j = 0; j < lines[i].length; j++) {
+          const char = lines[i][j];
+          
+          if (char === '"') {
+            insideQuotes = !insideQuotes;
+          } else if (char === ',' && !insideQuotes) {
+            values.push(currentValue.trim().replace(/"/g, ''));
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+        values.push(currentValue.trim().replace(/"/g, ''));
+        
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        
+        data.push(row);
+      }
+      
+      return data;
     }
     
     // ============================================================
@@ -1084,30 +1166,26 @@
       if (valueLower.includes('avançado')) return 4;
       if (valueLower.includes('especializado')) return 5;
       
-      return 2; // Default to básico
+      return 2;
     }
     
     // ============================================================
     // FETCH DATA FROM GOOGLE SHEETS
     // ============================================================
     
-    async function fetchSheetData(sheetName) {
-      const url = `${BASE_URL}&sheet=${encodeURIComponent(sheetName)}`;
-      
+    async function fetchSheetData(url, sheetName) {
       try {
         const response = await fetch(url);
-        const csvText = await response.text();
         
-        return new Promise((resolve, reject) => {
-          Papa.parse(csvText, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => resolve(results.data),
-            error: (error) => reject(error)
-          });
-        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const csvText = await response.text();
+        console.log(`✓ Aba "${sheetName}" carregada com sucesso`);
+        return parseCSV(csvText);
       } catch (error) {
-        console.error(`Erro ao carregar aba "${sheetName}":`, error);
+        console.error(`✗ Erro ao carregar aba "${sheetName}":`, error);
         throw error;
       }
     }
@@ -1116,61 +1194,136 @@
       try {
         showLoadingSpinner();
         
-        const [aba1Raw, aba2Raw, aba3Raw] = await Promise.all([
-          fetchSheetData('Respostas ao formulário 1'),
-          fetchSheetData('Pontuação'),
-          fetchSheetData('Classificação')
-        ]);
+        // Tente primeiro com as URLs configuradas
+        let aba1Data, aba2Data, aba3Data;
+        
+        try {
+          // Método 1: URLs diretas das abas publicadas
+          if (SHEET_CONFIG.aba1 && !SHEET_CONFIG.aba1.includes('PACX-1vTxyz')) {
+            [aba1Data, aba2Data, aba3Data] = await Promise.all([
+              fetchSheetData(SHEET_CONFIG.aba1, 'Respostas ao formulário 1'),
+              fetchSheetData(SHEET_CONFIG.aba2, 'Pontuação'),
+              fetchSheetData(SHEET_CONFIG.aba3, 'Classificação')
+            ]);
+          } else {
+            throw new Error('URLs não configuradas, usando método alternativo');
+          }
+        } catch (error) {
+          console.warn('Método 1 falhou, tentando método alternativo...');
+          
+          // Método 2: Usando export com GIDs
+          // IMPORTANTE: Você precisa descobrir os GIDs corretos das suas abas
+          // Abra cada aba e olhe na URL: ...#gid=NUMERO
+          [aba1Data, aba2Data, aba3Data] = await Promise.all([
+            fetchSheetData(buildSheetURL(0), 'Respostas ao formulário 1'),
+            fetchSheetData(buildSheetURL(1234567890), 'Pontuação'),
+            fetchSheetData(buildSheetURL(9876543210), 'Classificação')
+          ]);
+        }
         
         console.log('Dados carregados:', {
-          aba1: aba1Raw.length,
-          aba2: aba2Raw.length,
-          aba3: aba3Raw.length
+          aba1: aba1Data.length,
+          aba2: aba2Data.length,
+          aba3: aba3Data.length
         });
         
-        return processData(aba1Raw, aba2Raw, aba3Raw);
+        return processData(aba1Data, aba2Data, aba3Data);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        showToast('Erro ao carregar dados da planilha. Verifique as permissões.', 'error');
-        throw error;
+        showToast('Erro ao carregar dados. Verifique o console e a configuração da planilha.', 'error');
+        
+        // Retornar dados de exemplo para demonstração
+        return createSampleData();
       } finally {
         hideLoadingSpinner();
       }
     }
     
+    // Função para criar dados de exemplo (útil para demonstração)
+    function createSampleData() {
+      console.warn('⚠️ Usando dados de exemplo. Configure a planilha corretamente.');
+      
+      const sampleRespondents = [];
+      const areas = ['TI', 'Pedagógico', 'Administrativo', 'Gestão', 'RH'];
+      const vinculos = ['Docente', 'TAE', 'Gestão', 'Terceirizado'];
+      const maturidades = ['Iniciante', 'Intermediário', 'Avançado'];
+      
+      for (let i = 0; i < 50; i++) {
+        sampleRespondents.push({
+          email: `usuario${i}@example.com`,
+          vinculo: vinculos[Math.floor(Math.random() * vinculos.length)],
+          area: areas[Math.floor(Math.random() * areas.length)],
+          faixaEtaria: ['18-25', '26-35', '36-45', '46-55', '56+'][Math.floor(Math.random() * 5)],
+          vinculacao: ['Efetivo', 'Contrato', 'Temporário'][Math.floor(Math.random() * 3)],
+          contatoIA: Math.random() > 0.3 ? 'Sim' : 'Não',
+          conhecimentoIA: ['Básico'],
+          ferramentas: ['ChatGPT', 'Gemini', 'Claude'].slice(0, Math.floor(Math.random() * 3) + 1),
+          frequencia: ['Diariamente', 'Semanalmente', 'Mensalmente', 'Raramente'][Math.floor(Math.random() * 4)],
+          cuidadosDados: Math.random() > 0.4 ? 'Sim' : 'Não',
+          pontuacoes: {
+            P1: Math.floor(Math.random() * 10),
+            P2: Math.floor(Math.random() * 10),
+            P3: Math.floor(Math.random() * 10),
+            P4: Math.floor(Math.random() * 10),
+            P5: Math.floor(Math.random() * 10),
+            P6: Math.floor(Math.random() * 10),
+            P7: Math.floor(Math.random() * 10),
+            P8: Math.floor(Math.random() * 10),
+            P9: Math.floor(Math.random() * 10),
+            P10: Math.floor(Math.random() * 10),
+            P11: Math.floor(Math.random() * 10),
+            P12: Math.floor(Math.random() * 10),
+            total: 0
+          },
+          maturidade: maturidades[Math.floor(Math.random() * maturidades.length)],
+          trilha: ['Trilha Básica', 'Trilha Intermediária', 'Trilha Avançada'][Math.floor(Math.random() * 3)],
+          conhecimentoNivel: Math.floor(Math.random() * 5) + 1
+        });
+        
+        // Calcular total
+        sampleRespondents[i].pontuacoes.total = Object.keys(sampleRespondents[i].pontuacoes)
+          .filter(k => k.startsWith('P'))
+          .reduce((sum, k) => sum + sampleRespondents[i].pontuacoes[k], 0);
+      }
+      
+      return {
+        respondents: sampleRespondents,
+        metadata: {
+          lastUpdate: new Date().toLocaleString('pt-BR'),
+          totalRespondents: sampleRespondents.length
+        }
+      };
+    }
+    
     function processData(aba1, aba2, aba3) {
       const respondents = [];
       
-      // Validação: verificar se todas as abas têm o mesmo número de linhas
       const minLength = Math.min(aba1.length, aba2.length, aba3.length);
       
       if (aba1.length !== aba2.length || aba1.length !== aba3.length) {
-        console.warn('Número de linhas inconsistente entre abas. Usando menor comprimento.');
+        console.warn('⚠️ Número de linhas inconsistente entre abas. Usando menor comprimento.');
       }
+      
+      const cols1 = Object.keys(aba1[0] || {});
+      const cols2 = Object.keys(aba2[0] || {});
+      const cols3 = Object.keys(aba3[0] || {});
       
       for (let i = 0; i < minLength; i++) {
         const row1 = aba1[i];
         const row2 = aba2[i];
         const row3 = aba3[i];
         
-        // Obter nomes das colunas dinamicamente (primeira linha do CSV)
-        const cols1 = Object.keys(row1);
-        const cols2 = Object.keys(row2);
-        const cols3 = Object.keys(row3);
+        const email = row1[cols1[1]] || '';
+        const vinculo = row1[cols1[3]] || 'Não informado';
+        const area = row1[cols1[4]] || 'Não informado';
+        const faixaEtaria = row1[cols1[6]] || 'Não informado';
+        const vinculacao = row1[cols1[7]] || 'Não informado';
+        const contatoIA = mapContatoIA(row1[cols1[9]]);
+        const conhecimentoIA = splitMultipleChoice(row1[cols1[11]]);
+        const ferramentas = splitMultipleChoice(row1[cols1[12]]);
+        const frequencia = row1[cols1[13]] || 'Não informado';
+        const cuidadosDados = mapCuidadosDados(row1[cols1[23]]);
         
-        // Mapear colunas por índice (assumindo ordem correta)
-        const email = row1[cols1[1]] || ''; // Coluna B
-        const vinculo = row1[cols1[3]] || 'Não informado'; // Coluna D
-        const area = row1[cols1[4]] || 'Não informado'; // Coluna E
-        const faixaEtaria = row1[cols1[6]] || 'Não informado'; // Coluna G
-        const vinculacao = row1[cols1[7]] || 'Não informado'; // Coluna H
-        const contatoIA = mapContatoIA(row1[cols1[9]]); // Coluna J
-        const conhecimentoIA = splitMultipleChoice(row1[cols1[11]]); // Coluna L
-        const ferramentas = splitMultipleChoice(row1[cols1[12]]); // Coluna M
-        const frequencia = row1[cols1[13]] || 'Não informado'; // Coluna N
-        const cuidadosDados = mapCuidadosDados(row1[cols1[23]]); // Coluna X
-        
-        // Pontuações da Aba 2
         const pontuacoes = {
           P1: parseFloat(row2[cols2[0]]) || 0,
           P2: parseFloat(row2[cols2[1]]) || 0,
@@ -1187,11 +1340,9 @@
           total: parseFloat(row2[cols2[12]]) || 0
         };
         
-        // Classificação da Aba 3
         const maturidade = row3[cols3[0]] || classifyMaturity(pontuacoes.total);
         const trilha = row3[cols3[1]] || 'Não definida';
         
-        // Calcular nível de conhecimento numérico
         const conhecimentoNivel = conhecimentoIA.length > 0 
           ? convertKnowledgeLevel(conhecimentoIA[0]) 
           : 1;
@@ -1226,15 +1377,13 @@
     function validateData(data) {
       const issues = [];
       
-      // Validação básica
       if (!data.respondents || data.respondents.length === 0) {
         issues.push({
           severity: 'critical',
-          message: 'Nenhum dado foi carregado da planilha.'
+          message: 'Nenhum dado foi carregado da planilha. Verifique a configuração.'
         });
       }
       
-      // Verificar e-mails duplicados
       const emails = data.respondents.map(r => r.email);
       const uniqueEmails = new Set(emails);
       
@@ -1335,10 +1484,18 @@
     function renderKPIs(data) {
       const total = data.length;
       
-      // KPI 1: Total Respondentes
+      if (total === 0) {
+        document.getElementById('kpiTotal').textContent = '0';
+        document.getElementById('kpiMaturidade').textContent = '0.0';
+        document.getElementById('kpiAdocao').textContent = '0%';
+        document.getElementById('kpiConformidade').textContent = '0%';
+        document.getElementById('kpiIPO').textContent = '0.0';
+        document.getElementById('kpiRisco').textContent = '0%';
+        return;
+      }
+      
       document.getElementById('kpiTotal').textContent = total;
       
-      // KPI 2: Maturidade Global
       const avgMaturity = data.reduce((sum, r) => sum + r.pontuacoes.total, 0) / total;
       document.getElementById('kpiMaturidade').textContent = avgMaturity.toFixed(1);
       document.getElementById('progressMaturidade').style.width = `${avgMaturity}%`;
@@ -1351,15 +1508,12 @@
         document.getElementById('progressMaturidade').style.background = '#F44336';
       }
       
-      // KPI 3: Taxa de Adoção
       const adocao = (data.filter(r => r.contatoIA === 'Sim').length / total * 100).toFixed(0);
       document.getElementById('kpiAdocao').textContent = `${adocao}%`;
       
-      // KPI 4: Conformidade LGPD
       const conformidade = (data.filter(r => r.cuidadosDados === 'Sim').length / total * 100).toFixed(0);
       document.getElementById('kpiConformidade').textContent = `${conformidade}%`;
       
-      // KPI 5: IPO
       const ipo = (avgMaturity * parseFloat(adocao) * parseFloat(conformidade) / 10000).toFixed(1);
       document.getElementById('kpiIPO').textContent = ipo;
       
@@ -1375,7 +1529,6 @@
       document.getElementById('kpiIPOStatus').textContent = `/100 - Status: ${ipoStatus}`;
       document.getElementById('kpiIPOStatus').style.color = ipoColor;
       
-      // KPI 6: Taxa de Risco Crítico
       const risco = data.filter(r => r.contatoIA === 'Sim' && r.cuidadosDados === 'Não').length;
       const riscoPercent = (risco / total * 100).toFixed(0);
       document.getElementById('kpiRisco').textContent = `${riscoPercent}%`;
@@ -1387,6 +1540,11 @@
     // ============================================================
     
     function renderAllCharts(data) {
+      if (!data || data.length === 0) {
+        console.warn('Nenhum dado disponível para renderizar gráficos');
+        return;
+      }
+      
       renderKPIs(data);
       renderChart1_Maturity(data);
       renderChart2_Tools(data);
@@ -1839,7 +1997,6 @@
         label: r.email
       }));
       
-      // Classify into quadrants
       const talents = scatterData.filter(d => d.x > 60 && d.y < 4);
       const risks = scatterData.filter(d => d.x <= 60 && d.y >= 4);
       const beginners = scatterData.filter(d => d.x <= 60 && d.y < 4);
@@ -1912,8 +2069,6 @@
     }
     
     function renderChart10_Heatmap(data) {
-      // Simplified heatmap using bar chart
-      // Calculate average scores for P1-P12
       const avgScores = [];
       
       for (let i = 1; i <= 12; i++) {
@@ -2016,7 +2171,6 @@
     function renderRecommendations(data) {
       const recommendations = [];
       
-      // Regra 1: Zona de Risco
       const riskUsers = data.filter(r => r.contatoIA === 'Sim' && r.cuidadosDados === 'Não');
       if (riskUsers.length > 0) {
         recommendations.push({
@@ -2027,7 +2181,6 @@
         });
       }
       
-      // Regra 2: Talentos Ocultos
       const hiddenTalents = data.filter(r => r.pontuacoes.total > 60 && r.conhecimentoNivel < 4);
       if (hiddenTalents.length > 0) {
         recommendations.push({
@@ -2038,7 +2191,6 @@
         });
       }
       
-      // Regra 3: Áreas críticas
       const areaStats = {};
       data.forEach(r => {
         if (!areaStats[r.area]) {
@@ -2066,7 +2218,7 @@
       container.innerHTML = '';
       
       if (recommendations.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">Nenhuma recomendação crítica no momento. Continue monitorando!</p>';
+        container.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">✅ Nenhuma recomendação crítica no momento. Continue monitorando!</p>';
         return;
       }
       
@@ -2088,34 +2240,41 @@
     // EXPORT FUNCTIONS
     // ============================================================
     
-    function exportPDF() {
-      showToast('Funcionalidade de exportação PDF em desenvolvimento', 'error');
-    }
-    
     function exportCSV() {
-      const csv = Papa.unparse(filteredData.map(r => ({
-        Email: r.email,
-        Vinculo: r.vinculo,
-        Area: r.area,
-        Maturidade: r.maturidade,
-        Pontuacao: r.pontuacoes.total,
-        ContatoIA: r.contatoIA,
-        CuidadosDados: r.cuidadosDados
-      })));
+      if (!filteredData || filteredData.length === 0) {
+        showToast('Nenhum dado para exportar', 'error');
+        return;
+      }
       
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `dashboard_maturidade_ia_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const headers = ['Email', 'Vínculo', 'Área', 'Maturidade', 'Pontuação', 'Contato IA', 'Cuidados Dados'];
+      const rows = filteredData.map(r => [
+        r.email,
+        r.vinculo,
+        r.area,
+        r.maturidade,
+        r.pontuacoes.total,
+        r.contatoIA,
+        r.cuidadosDados
+      ]);
+      
+      let csv = headers.join(',') + '\n';
+      rows.forEach(row => {
+        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `dashboard_maturidade_ia_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       showToast('Dados exportados com sucesso!');
-    }
-    
-    function shareEmail() {
-      showToast('Funcionalidade de envio por e-mail em desenvolvimento', 'error');
     }
     
     // ============================================================
@@ -2174,8 +2333,10 @@
     }
     
     document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀 Iniciando Dashboard de Maturidade em IA...');
       setupEventListeners();
       await initDashboard();
+      console.log('✓ Dashboard carregado com sucesso!');
     });
   </script>
 </body>
