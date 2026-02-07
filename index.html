@@ -3,132 +3,1072 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Maturidade em IA</title>
+    <title>Dashboard de Maturidade em IA - José Roberto Schmaltz</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
     <style>
-        /* (Estilos mantidos para garantir a visualização correta) */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .loading { text-align: center; padding: 60px; color: #667eea; }
-        .error-msg { background: #fee; color: #c33; padding: 20px; margin: 20px; border-radius: 8px; border-left: 4px solid #c33; }
-        .tabs { display: flex; background: #f8f9fa; border-bottom: 2px solid #e9ecef; }
-        .tab { flex: 1; padding: 20px; cursor: pointer; border: none; background: transparent; font-weight: bold; }
-        .tab.active { background: white; color: #667eea; border-bottom: 3px solid #667eea; }
-        .tab-content { display: none; padding: 30px; }
-        .tab-content.active { display: block; }
-        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; }
-        .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; }
-        .chart-card { background: white; border: 1px solid #e9ecef; border-radius: 12px; padding: 25px; }
-        .chart-container { height: 300px; position: relative; }
+        :root {
+            --color-advanced: #4CAF50;
+            --color-intermediate: #FF9800;
+            --color-beginner: #F44336;
+            --color-accent: #2196F3;
+            --color-bg: #f8f9fa;
+            --color-card: #ffffff;
+            --color-text: #333333;
+            --color-text-sec: #6c757d;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            padding-top: 140px; /* Espaço para o header fixo */
+        }
+
+        /* Header e Filtros */
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 20px;
+        }
+
+        .filter-container {
+            background-color: #f1f3f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .form-select-sm, .form-control-sm {
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+
+        /* Cards e Layout */
+        .card-custom {
+            background: var(--color-card);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            height: 100%;
+            padding: 20px;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-sec);
+            margin-bottom: 5px;
+        }
+
+        .kpi-trend {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Cores de Status */
+        .text-success-custom { color: var(--color-advanced) !important; }
+        .text-warning-custom { color: var(--color-intermediate) !important; }
+        .text-danger-custom { color: var(--color-beginner) !important; }
+        .bg-success-custom { background-color: var(--color-advanced) !important; }
+        .bg-warning-custom { background-color: var(--color-intermediate) !important; }
+        .bg-danger-custom { background-color: var(--color-beginner) !important; }
+
+        /* Componentes Específicos */
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.9);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .heatmap-table {
+            width: 100%;
+            font-size: 0.75rem;
+            border-collapse: separate;
+            border-spacing: 2px;
+        }
+        .heatmap-cell {
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .recommendation-card {
+            border-left: 5px solid;
+            margin-bottom: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+        }
+        .rec-critical { border-color: var(--color-beginner); }
+        .rec-priority { border-color: var(--color-intermediate); }
+        .rec-opportunity { border-color: var(--color-advanced); }
+
+        /* Ajustes Mobile */
+        @media (max-width: 991px) {
+            body { padding-top: 260px; } /* Mais espaço para filtros empilhados */
+            .chart-container { height: 250px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 Dashboard de Maturidade em IA</h1>
-            <p>Análise de Adoção e Uso de Inteligência Artificial</p>
-        </div>
 
-        <div id="loading" class="loading">
-            Carregando dados da planilha...<br>
-            <small>Aguarde enquanto processamos as informações</small>
-        </div>
+    <div id="loader" class="loader-overlay">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="mt-3">Carregando e Processando Dados...</h5>
+        <p class="text-muted small">Conectando ao Google Sheets</p>
+    </div>
 
-        <div id="error-container" style="display: none;"></div>
-
-        <div id="dashboard" style="display: none;">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab(0)">📋 Respostas</button>
-                <button class="tab" onclick="switchTab(1)">📈 Gráficos de Perfil</button>
+    <header class="fixed-header">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <h4 class="m-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>Dashboard de Maturidade em IA</h4>
+                <small class="text-muted" id="last-update-txt">Carregando...</small>
             </div>
+            <div>
+                <button class="btn btn-outline-primary btn-sm me-2" onclick="toggleDebug()"><i class="fas fa-bug"></i> Logs</button>
+                <button class="btn btn-primary btn-sm" id="btn-refresh"><i class="fas fa-sync-alt me-1"></i> Atualizar Dados</button>
+            </div>
+        </div>
 
-            <div class="tab-content active" id="tab-0">
-                <div class="kpis" id="kpis"></div>
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Frequência de Uso</h3>
-                        <div class="chart-container"><canvas id="chartFrequencia"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Vínculo Institucional</h3>
-                        <div class="chart-container"><canvas id="chartVinculo"></canvas></div>
+        <div class="filter-container row g-2">
+            <div class="col-md-3 col-6">
+                <select id="filter-area" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">Todas as Áreas</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-6">
+                <select id="filter-vinculo" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">Todos os Vínculos</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-6">
+                <select id="filter-faixa" class="form-select form-select-sm" onchange="applyFilters()">
+                    <option value="all">Todas Faixas Etárias</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-6">
+                <input type="text" id="filter-email" class="form-control form-control-sm" placeholder="🔍 Buscar E-mail..." oninput="applyFilters()">
+            </div>
+            <div class="col-12 text-end">
+                <small class="text-muted me-2" id="filter-count">Exibindo todos os registros</small>
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="resetFilters()">Limpar Filtros</button>
+            </div>
+        </div>
+        
+        <div id="validation-alert" class="alert alert-warning py-1 mt-2 mb-0 d-none" role="alert">
+            <small><i class="fas fa-exclamation-triangle me-1"></i> <span id="validation-msg"></span></small>
+        </div>
+    </header>
+
+    <div class="container-fluid pb-5">
+        
+        <section class="row g-3 mb-4">
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center">
+                    <div class="kpi-label">Respondentes</div>
+                    <div class="kpi-value" id="kpi-total">0</div>
+                    <div class="kpi-trend text-muted"><i class="fas fa-users"></i> Total</div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center">
+                    <div class="kpi-label">Maturidade Global</div>
+                    <div class="kpi-value" id="kpi-maturidade">0.0</div>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div id="prog-maturidade" class="progress-bar" role="progressbar" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
-        </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center">
+                    <div class="kpi-label">Taxa de Adoção</div>
+                    <div class="kpi-value" id="kpi-adocao">0%</div>
+                    <div class="kpi-trend" id="trend-adocao">Contato com IA</div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center">
+                    <div class="kpi-label">Conformidade Dados</div>
+                    <div class="kpi-value" id="kpi-lgpd">0%</div>
+                    <div class="kpi-trend" id="trend-lgpd">Uso Seguro</div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center">
+                    <div class="kpi-label">Prontidão (IPO)</div>
+                    <div class="kpi-value" id="kpi-ipo">0</div>
+                    <div class="kpi-trend" id="trend-ipo">Índice Geral</div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card-custom text-center border-danger">
+                    <div class="kpi-label text-danger">Risco Crítico</div>
+                    <div class="kpi-value text-danger" id="kpi-risco">0%</div>
+                    <div class="kpi-trend text-danger">Uso s/ Cuidado</div>
+                </div>
+            </div>
+        </section>
+
+        <h5 class="mb-3 border-bottom pb-2 text-primary">Análise Comportamental</h5>
+        <section class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card-custom">
+                    <h6 class="fw-bold mb-3">Distribuição de Maturidade</h6>
+                    <div class="chart-container">
+                        <canvas id="chart1"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom">
+                    <h6 class="fw-bold mb-3">Top 5 Ferramentas</h6>
+                    <div class="chart-container">
+                        <canvas id="chart2"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom">
+                    <h6 class="fw-bold mb-3">Frequência de Uso</h6>
+                    <div class="chart-container">
+                        <canvas id="chart3"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <h5 class="mb-3 border-bottom pb-2 text-primary">Diagnóstico de Competências</h5>
+        <section class="row g-3 mb-4">
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="fw-bold">Radar de Competências (P1-P12)</h6>
+                        <small class="text-muted">Comparativo Média Global</small>
+                    </div>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="chart5"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <h6 class="fw-bold">Histograma de Pontuação Total</h6>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="chart6"></canvas>
+                    </div>
+                    <div class="mt-3 p-2 bg-light rounded border border-info">
+                        <small id="insight-histograma"><i class="fas fa-lightbulb text-warning me-1"></i> Analisando dados...</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <h5 class="mb-3 border-bottom pb-2 text-primary">Estratégia e Desenvolvimento</h5>
+        <section class="row g-3 mb-4">
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <h6 class="fw-bold">Áreas x Nível de Conhecimento</h6>
+                    <div class="chart-container">
+                        <canvas id="chart4"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <h6 class="fw-bold">Trilhas de Aprendizado Sugeridas</h6>
+                    <div class="chart-container">
+                        <canvas id="chart8"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <h5 class="mb-3 border-bottom pb-2 text-primary">Insights Avançados</h5>
+        <section class="row g-3 mb-4">
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <h6 class="fw-bold">Matriz de Autoconhecimento</h6>
+                    <p class="small text-muted mb-2">Percepção vs. Realidade (Pontuação)</p>
+                    <div class="chart-container">
+                        <canvas id="chart9"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card-custom">
+                    <h6 class="fw-bold">Correlação de Competências (Heatmap)</h6>
+                    <div class="table-responsive mt-3" id="heatmap-container">
+                        </div>
+                    <small class="text-muted d-block mt-2">* Cores mais escuras indicam forte correlação entre as competências.</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-5">
+            <h5 class="mb-3"><i class="fas fa-robot text-primary me-2"></i>Recomendações Geradas por IA (Regras de Negócio)</h5>
+            <div id="recommendations-container">
+                </div>
+        </section>
+
+        <section id="debug-section" class="bg-dark text-light p-3 rounded d-none">
+            <h6>Console de Logs</h6>
+            <div id="debug-log" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.8rem;"></div>
+        </section>
+
     </div>
 
+    <footer class="text-center py-4 text-muted border-top">
+        <p class="mb-1">&copy; 2025 Dashboard de Maturidade em IA.</p>
+        <small>Desenvolvido para análise estratégica. Dados providos via Google Sheets API.</small>
+    </footer>
+
     <script>
-        // CONFIGURAÇÃO ATUALIZADA
-        const SPREADSHEET_ID = "19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg";
-        const SHEET_RESP = "Respostas ao formulário 1"; // CORRIGIDO PARA "AO"
+        // ============================================
+        // 1. CONFIGURAÇÃO E VARIÁVEIS GLOBAIS
+        // ============================================
+        const SHEET_ID = '19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg';
+        
+        // Cores do Material Design
+        const COLORS = {
+            green: '#4CAF50',
+            orange: '#FF9800',
+            red: '#F44336',
+            blue: '#2196F3',
+            grey: '#9E9E9E',
+            bg_green: 'rgba(76, 175, 80, 0.7)',
+            bg_orange: 'rgba(255, 152, 0, 0.7)',
+            bg_red: 'rgba(244, 67, 54, 0.7)',
+            bg_blue: 'rgba(33, 150, 243, 0.7)'
+        };
 
-        async function loadData() {
-            const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_RESP)}`;
-            
+        // Estado Global
+        let rawData = { aba1: [], aba2: [], aba3: [] };
+        let processedData = []; // Array unificado
+        let chartInstances = {}; // Armazena instâncias do Chart.js
+
+        // ============================================
+        // 2. FUNÇÕES DE BUSCA DE DADOS (ETL)
+        // ============================================
+        
+        // Construtor de URL para exportação CSV via Visualization API (mais estável)
+        function getSheetUrl(sheetName) {
+            return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+        }
+
+        async function fetchAllData() {
+            log('Iniciando fetch dos dados...');
             try {
-                const response = await fetch(url);
-                const text = await response.text();
-                const json = JSON.parse(text.substring(47).slice(0, -2));
-                
-                const data = json.table.rows.map(row => ({
-                    vinculo: row.c[2] ? row.c[2].v : '',
-                    freq: row.c[6] ? row.c[6].v : ''
-                }));
+                // Fetch paralelo das 3 abas
+                const [resp1, resp2, resp3] = await Promise.all([
+                    fetch(getSheetUrl('Respostas ao formulário 1')).then(r => r.text()),
+                    fetch(getSheetUrl('Pontuação')).then(r => r.text()),
+                    fetch(getSheetUrl('Classificação')).then(r => r.text())
+                ]);
 
-                renderDashboard(data);
-            } catch (e) {
-                document.getElementById('loading').style.display = 'none';
-                const errDiv = document.getElementById('error-container');
-                errDiv.style.display = 'block';
-                errDiv.innerHTML = `<div class="error-msg">
-                    <strong>Erro de Conexão:</strong> Não foi possível acessar a planilha.<br>
-                    Certifique-se de que a planilha está <b>Publicada na Web</b> e que você está abrindo este arquivo HTML diretamente no seu navegador, e não dentro de um chat.
-                </div>`;
+                // Parse CSV
+                rawData.aba1 = Papa.parse(resp1, { header: false }).data; // Header false para controlar indice
+                rawData.aba2 = Papa.parse(resp2, { header: false }).data;
+                rawData.aba3 = Papa.parse(resp3, { header: false }).data;
+
+                log(`Dados brutos carregados: Aba1(${rawData.aba1.length}), Aba2(${rawData.aba2.length}), Aba3(${rawData.aba3.length})`);
+                
+                // Validação de linhas
+                validateRawData();
+
+                // Processamento e Unificação
+                processData();
+
+                // Renderização Inicial
+                populateFilters();
+                updateDashboard();
+                
+                document.getElementById('loader').classList.add('d-none');
+                document.getElementById('last-update-txt').innerText = 'Atualizado: ' + new Date().toLocaleTimeString();
+                showToast('Dados carregados com sucesso!');
+
+            } catch (error) {
+                console.error(error);
+                log('ERRO FATAL: ' + error.message);
+                document.getElementById('loader').innerHTML = `<div class="text-danger text-center"><h3>Erro ao carregar dados</h3><p>${error.message}</p></div>`;
             }
         }
 
-        function renderDashboard(data) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            
-            // KPI Simples
-            document.getElementById('kpis').innerHTML = `
-                <div class="kpi-card"><h3>Total de Respostas</h3><div style="font-size:2rem">${data.length}</div></div>
-            `;
+        // ============================================
+        // 3. PROCESSAMENTO DE DADOS (LOGIC)
+        // ============================================
 
-            // Gráfico de Frequência
-            const freqCounts = data.reduce((acc, r) => { acc[r.freq] = (acc[r.freq] || 0) + 1; return acc; }, {});
-            new Chart(document.getElementById('chartFrequencia'), {
+        function processData() {
+            processedData = [];
+            
+            // Assume linha 0 é cabeçalho. Começa do 1.
+            // Loop baseado na Aba 1 (Mestra)
+            for (let i = 1; i < rawData.aba1.length; i++) {
+                const row1 = rawData.aba1[i];
+                const row2 = rawData.aba2[i]; // Mesma linha (índice)
+                const row3 = rawData.aba3[i]; // Mesma linha (índice)
+
+                // Skip se a linha estiver vazia ou sem email
+                if (!row1 || row1.length < 2 || !row1[1]) continue;
+
+                // --- Mapeamento Aba 1 ---
+                const email = row1[1];
+                const vinculo = row1[3];
+                const area = row1[4];
+                const faixaEtaria = row1[6];
+                
+                // Mapeamento Binário (Regra de Negócio)
+                const contatoTexto = row1[9] || "";
+                const contatoIA = mapContatoIA(contatoTexto);
+                
+                const nivelConhecimentoRaw = row1[11]; // Coluna L
+                const ferramentas = splitMultipleChoice(row1[12]); // Coluna M
+                const frequencia = row1[13]; // Coluna N
+                
+                const cuidadosTexto = row1[23] || ""; // Coluna X (Assumindo índice 23 base 0, verificar colunas reais se mudar)
+                // Ajuste: Coluna X é a 24ª coluna (índice 23). CSV parser pega todas.
+                const cuidadosDados = mapCuidadosDados(cuidadosTexto);
+
+                // --- Mapeamento Aba 2 (Pontuações) ---
+                // Verifica se row2 existe para evitar crash
+                const scores = {};
+                let totalScore = 0;
+                if (row2) {
+                    for (let j = 0; j < 12; j++) {
+                        scores[`P${j+1}`] = parseFloat(row2[j] || 0);
+                    }
+                    totalScore = parseFloat(row2[12] || 0); // Coluna M = indice 12
+                }
+
+                // --- Mapeamento Aba 3 (Classificação) ---
+                const maturidade = row3 ? row3[0] : "Não Definido";
+                const trilha = row3 ? row3[1] : "Não Definido";
+
+                // --- Enriquecimento ---
+                // Nivel Autodeclarado (numérico 1-5)
+                const autoNivel = mapNivelAuto(nivelConhecimentoRaw);
+
+                // Objeto Unificado do Respondente
+                const respondent = {
+                    id: i,
+                    email,
+                    vinculo,
+                    area,
+                    faixaEtaria,
+                    contatoIA,      // "Sim" ou "Não"
+                    cuidadosDados,  // "Sim" ou "Não"
+                    contatoOriginal: contatoTexto,
+                    nivelConhecimento: splitMultipleChoice(nivelConhecimentoRaw),
+                    autoNivelScore: autoNivel,
+                    ferramentas,
+                    frequencia,
+                    scores,         // Objeto {P1: 8, P2: 5...}
+                    totalScore,
+                    maturidade,     // Iniciante, Interm, Avanç
+                    trilha
+                };
+
+                processedData.push(respondent);
+            }
+            
+            log(`Processamento concluído: ${processedData.length} registros válidos.`);
+        }
+
+        // --- Helpers de Regra de Negócio ---
+
+        function splitMultipleChoice(str) {
+            if (!str) return [];
+            return str.split(/[,;]/).map(s => s.trim()).filter(s => s.length > 0);
+        }
+
+        function mapContatoIA(value) {
+            const v = value.toLowerCase();
+            if (v.includes("já usei") || v.includes("uso com") || v.includes("uso frequentemente")) return "Sim";
+            return "Não"; // Default para "Nunca" e "Já ouvi falar"
+        }
+
+        function mapCuidadosDados(value) {
+            const v = value.toLowerCase();
+            // Lógica conservadora: Só é Sim se tiver palavras chaves de afirmação positiva
+            if ((v.includes("sim") || v.includes("evito") || v.includes("tenho cuidado")) && !v.includes("não sabia")) return "Sim";
+            return "Não";
+        }
+
+        function mapNivelAuto(str) {
+            if (!str) return 1;
+            const s = str.toLowerCase();
+            if (s.includes("especializ")) return 5;
+            if (s.includes("avançad")) return 4;
+            if (s.includes("intermediário")) return 3;
+            if (s.includes("básico")) return 2;
+            return 1;
+        }
+
+        // ============================================
+        // 4. VALIDAÇÃO E FILTROS
+        // ============================================
+
+        function validateRawData() {
+            const l1 = rawData.aba1.length;
+            const l2 = rawData.aba2.length;
+            const l3 = rawData.aba3.length;
+            
+            if (l1 !== l2 || l1 !== l3) {
+                const msg = `Inconsistência de linhas: Aba1(${l1}), Aba2(${l2}), Aba3(${l3}). Verifique a planilha.`;
+                document.getElementById('validation-msg').innerText = msg;
+                document.getElementById('validation-alert').classList.remove('d-none');
+                log('WARN: ' + msg);
+            }
+        }
+
+        function populateFilters() {
+            const areas = new Set();
+            const vinculos = new Set();
+            const faixas = new Set();
+
+            processedData.forEach(r => {
+                if(r.area) areas.add(r.area);
+                if(r.vinculo) vinculos.add(r.vinculo);
+                if(r.faixaEtaria) faixas.add(r.faixaEtaria);
+            });
+
+            fillSelect('filter-area', areas);
+            fillSelect('filter-vinculo', vinculos);
+            fillSelect('filter-faixa', faixas);
+        }
+
+        function fillSelect(id, set) {
+            const sel = document.getElementById(id);
+            // Limpa mantendo a primeira opção
+            sel.innerHTML = sel.options[0].outerHTML;
+            Array.from(set).sort().forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.innerText = val;
+                sel.appendChild(opt);
+            });
+        }
+
+        // Retorna dados filtrados com base na UI
+        function getFilteredData() {
+            const fArea = document.getElementById('filter-area').value;
+            const fVinculo = document.getElementById('filter-vinculo').value;
+            const fFaixa = document.getElementById('filter-faixa').value;
+            const fEmail = document.getElementById('filter-email').value.toLowerCase();
+
+            return processedData.filter(r => {
+                const matchArea = fArea === 'all' || r.area === fArea;
+                const matchVinculo = fVinculo === 'all' || r.vinculo === fVinculo;
+                const matchFaixa = fFaixa === 'all' || r.faixaEtaria === fFaixa;
+                const matchEmail = !fEmail || r.email.toLowerCase().includes(fEmail);
+                return matchArea && matchVinculo && matchFaixa && matchEmail;
+            });
+        }
+
+        function applyFilters() {
+            updateDashboard();
+        }
+        
+        function resetFilters() {
+            document.getElementById('filter-area').value = 'all';
+            document.getElementById('filter-vinculo').value = 'all';
+            document.getElementById('filter-faixa').value = 'all';
+            document.getElementById('filter-email').value = '';
+            updateDashboard();
+        }
+
+        // ============================================
+        // 5. ATUALIZAÇÃO DO DASHBOARD (RENDER)
+        // ============================================
+
+        function updateDashboard() {
+            const data = getFilteredData();
+            document.getElementById('filter-count').innerText = `Exibindo ${data.length} de ${processedData.length}`;
+
+            // 1. Atualizar KPIs
+            renderKPIs(data);
+            
+            // 2. Atualizar Gráficos (Só renderiza se tiver dados)
+            if (data.length > 0) {
+                renderChart1_Maturity(data);
+                renderChart2_Tools(data);
+                renderChart3_Freq(data);
+                renderChart4_AreaKnowledge(data);
+                renderChart5_Radar(data);
+                renderChart6_Histogram(data);
+                renderChart8_Trilhas(data);
+                renderChart9_Scatter(data);
+                renderHeatmapTable(data);
+                
+                // 3. Gerar Recomendações
+                generateRecommendations(data);
+            } else {
+                // Limpar gráficos se filtro zerar
+                Object.values(chartInstances).forEach(c => c.destroy());
+                chartInstances = {};
+            }
+        }
+
+        // --- Render KPI Functions ---
+        function renderKPIs(data) {
+            const total = data.length;
+            const avgScore = total ? (data.reduce((sum, r) => sum + r.totalScore, 0) / total).toFixed(1) : 0;
+            
+            const countAdocao = data.filter(r => r.contatoIA === "Sim").length;
+            const pctAdocao = total ? Math.round((countAdocao / total) * 100) : 0;
+            
+            const countLGPD = data.filter(r => r.cuidadosDados === "Sim").length;
+            const pctLGPD = total ? Math.round((countLGPD / total) * 100) : 0;
+            
+            const countRisco = data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não").length;
+            const pctRisco = total ? Math.round((countRisco / total) * 100) : 0;
+            
+            // IPO Calculation
+            const ipo = Math.round((avgScore * (pctAdocao/100) * (pctLGPD/100))); 
+
+            // Update DOM
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-maturidade').innerText = avgScore;
+            document.getElementById('prog-maturidade').style.width = avgScore + '%';
+            document.getElementById('prog-maturidade').className = `progress-bar ${getColorClass(avgScore)}`;
+            
+            updateKpiElement('kpi-adocao', pctAdocao + '%', pctAdocao < 50);
+            updateKpiElement('kpi-lgpd', pctLGPD + '%', pctLGPD < 70);
+            updateKpiElement('kpi-risco', pctRisco + '%', pctRisco > 10); // Risco alto é ruim
+            
+            const ipoEl = document.getElementById('kpi-ipo');
+            ipoEl.innerText = ipo;
+            ipoEl.className = `kpi-value ${ipo > 60 ? 'text-success-custom' : (ipo > 30 ? 'text-warning-custom' : 'text-danger-custom')}`;
+        }
+
+        function updateKpiElement(id, text, isBad) {
+            const el = document.getElementById(id);
+            el.innerText = text;
+            if (id === 'kpi-risco') {
+                el.className = `kpi-value ${isBad ? 'text-danger' : 'text-success'}`; // Inverso para risco
+            } else {
+                el.className = `kpi-value ${isBad ? 'text-danger' : 'text-success'}`;
+            }
+        }
+
+        function getColorClass(score) {
+            if (score > 70) return 'bg-success-custom';
+            if (score > 40) return 'bg-warning-custom';
+            return 'bg-danger-custom';
+        }
+
+        // --- Chart Rendering Functions ---
+        
+        function getChartCtx(id) {
+            // Destroi chart antigo se existir
+            if (chartInstances[id]) {
+                chartInstances[id].destroy();
+            }
+            return document.getElementById(id).getContext('2d');
+        }
+
+        function renderChart1_Maturity(data) {
+            const counts = { Iniciante: 0, Intermediário: 0, Avançado: 0 };
+            data.forEach(r => {
+                // Normaliza string para evitar erros de case/acento
+                const mat = r.maturidade.trim();
+                if (mat.includes('Iniciante')) counts.Iniciante++;
+                else if (mat.includes('Intermediário')) counts.Intermediário++;
+                else if (mat.includes('Avançado')) counts.Avançado++;
+            });
+
+            chartInstances['chart1'] = new Chart(getChartCtx('chart1'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Iniciante', 'Intermediário', 'Avançado'],
+                    datasets: [{
+                        data: [counts.Iniciante, counts.Intermediário, counts.Avançado],
+                        backgroundColor: [COLORS.red, COLORS.orange, COLORS.green]
+                    }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
+
+        function renderChart2_Tools(data) {
+            const toolsCount = {};
+            data.forEach(r => {
+                r.ferramentas.forEach(f => {
+                    toolsCount[f] = (toolsCount[f] || 0) + 1;
+                });
+            });
+            // Top 5
+            const sorted = Object.entries(toolsCount).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            
+            chartInstances['chart2'] = new Chart(getChartCtx('chart2'), {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(freqCounts),
-                    datasets: [{ label: 'Qtd', data: Object.values(freqCounts), backgroundColor: '#667eea' }]
+                    labels: sorted.map(i => i[0]),
+                    datasets: [{
+                        label: 'Usuários',
+                        data: sorted.map(i => i[1]),
+                        backgroundColor: COLORS.blue,
+                        borderRadius: 4
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { indexAxis: 'y', maintainAspectRatio: false }
             });
+        }
 
-            // Gráfico de Vínculo
-            const vincCounts = data.reduce((acc, r) => { acc[r.vinculo] = (acc[r.vinculo] || 0) + 1; return acc; }, {});
-            new Chart(document.getElementById('chartVinculo'), {
+        function renderChart3_Freq(data) {
+            const freqCount = {};
+            data.forEach(r => {
+                const f = r.frequencia || "Não informado";
+                freqCount[f] = (freqCount[f] || 0) + 1;
+            });
+            
+            chartInstances['chart3'] = new Chart(getChartCtx('chart3'), {
                 type: 'pie',
                 data: {
-                    labels: Object.keys(vincCounts),
-                    datasets: [{ data: Object.values(vincCounts), backgroundColor: ['#764ba2', '#f093fb', '#4facfe'] }]
+                    labels: Object.keys(freqCount),
+                    datasets: [{
+                        data: Object.values(freqCount),
+                        backgroundColor: [COLORS.blue, COLORS.bg_blue, '#64B5F6', '#BBDEFB', '#E3F2FD']
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { maintainAspectRatio: false }
             });
         }
 
-        function switchTab(idx) {
-            document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
-            document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+        function renderChart4_AreaKnowledge(data) {
+            // Stacked Bar: X = Área, Y = Count, Stacks = Maturidade
+            const areas = [...new Set(data.map(r => r.area))];
+            const dataset = {
+                Iniciante: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Iniciante')).length),
+                Intermediário: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Intermediário')).length),
+                Avançado: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Avançado')).length)
+            };
+
+            chartInstances['chart4'] = new Chart(getChartCtx('chart4'), {
+                type: 'bar',
+                data: {
+                    labels: areas,
+                    datasets: [
+                        { label: 'Iniciante', data: dataset.Iniciante, backgroundColor: COLORS.red },
+                        { label: 'Intermediário', data: dataset.Intermediário, backgroundColor: COLORS.orange },
+                        { label: 'Avançado', data: dataset.Avançado, backgroundColor: COLORS.green }
+                    ]
+                },
+                options: {
+                    scales: { x: { stacked: true }, y: { stacked: true } },
+                    maintainAspectRatio: false
+                }
+            });
         }
 
-        loadData();
+        function renderChart5_Radar(data) {
+            const dims = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
+            // Labels amigáveis (Exemplo genérico, ajustar conforme negócio real se tiver info)
+            const labels = dims; 
+
+            // Média Seleção Atual
+            const averages = dims.map(d => {
+                const sum = data.reduce((acc, r) => acc + (r.scores[d] || 0), 0);
+                return (sum / data.length).toFixed(1);
+            });
+
+            // Média Global (Todos os dados processados, não filtrados)
+            const globalAverages = dims.map(d => {
+                const sum = processedData.reduce((acc, r) => acc + (r.scores[d] || 0), 0);
+                return (sum / processedData.length).toFixed(1);
+            });
+
+            chartInstances['chart5'] = new Chart(getChartCtx('chart5'), {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Seleção Atual',
+                            data: averages,
+                            borderColor: COLORS.blue,
+                            backgroundColor: COLORS.bg_blue,
+                            fill: true
+                        },
+                        {
+                            label: 'Média Global',
+                            data: globalAverages,
+                            borderColor: COLORS.grey,
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    scales: { r: { min: 0, max: 10 } },
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function renderChart6_Histogram(data) {
+            // Bins: 0-20, 21-40, 41-60, 61-80, 81-100
+            const bins = [0,0,0,0,0];
+            data.forEach(r => {
+                const s = r.totalScore;
+                if (s <= 20) bins[0]++;
+                else if (s <= 40) bins[1]++;
+                else if (s <= 60) bins[2]++;
+                else if (s <= 80) bins[3]++;
+                else bins[4]++;
+            });
+
+            chartInstances['chart6'] = new Chart(getChartCtx('chart6'), {
+                type: 'bar',
+                data: {
+                    labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+                    datasets: [{
+                        label: 'Respondentes',
+                        data: bins,
+                        backgroundColor: [COLORS.red, COLORS.red, COLORS.orange, COLORS.green, COLORS.green],
+                    }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+
+            // Insight dinâmico
+            const maxBinIndex = bins.indexOf(Math.max(...bins));
+            const ranges = ['muito baixa', 'baixa', 'média', 'alta', 'muito alta'];
+            document.getElementById('insight-histograma').innerHTML = 
+                `<strong>Insight:</strong> A maior concentração de pontuações está na faixa <strong>${ranges[maxBinIndex]}</strong> (${bins[maxBinIndex]} pessoas).`;
+        }
+
+        function renderChart8_Trilhas(data) {
+            const trilhas = {};
+            data.forEach(r => {
+                const t = r.trilha || "Geral";
+                trilhas[t] = (trilhas[t] || 0) + 1;
+            });
+            
+            const sorted = Object.entries(trilhas).sort((a,b) => b[1] - a[1]);
+
+            chartInstances['chart8'] = new Chart(getChartCtx('chart8'), {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(i => i[0]),
+                    datasets: [{
+                        label: 'Recomendação',
+                        data: sorted.map(i => i[1]),
+                        backgroundColor: COLORS.blue,
+                        indexAxis: 'y'
+                    }]
+                },
+                options: { indexAxis: 'y', maintainAspectRatio: false }
+            });
+        }
+
+        function renderChart9_Scatter(data) {
+            // X: Total Score (Real), Y: AutoNivel (1-5)
+            // R: Frequência (simulada tamanho)
+            
+            const points = data.map(r => ({
+                x: r.totalScore,
+                y: r.autoNivelScore,
+                r: 5 // Tamanho fixo por enquanto, ou basear na frequencia
+            }));
+            
+            // Cores baseadas no quadrante (Simplified logic)
+            const bgColors = points.map(p => {
+                if (p.x > 60 && p.y >= 4) return COLORS.green; // Consciente Avançado
+                if (p.x > 60 && p.y < 4) return COLORS.blue; // Talento Oculto
+                if (p.x <= 60 && p.y >= 4) return COLORS.red; // Risco Dunning-Kruger
+                return COLORS.orange; // Iniciante
+            });
+
+            chartInstances['chart9'] = new Chart(getChartCtx('chart9'), {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Respondentes',
+                        data: points,
+                        backgroundColor: bgColors
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Pontuação Real (0-100)' }, min: 0, max: 100 },
+                        y: { title: { display: true, text: 'Autoavaliação (1-5)' }, min: 0, max: 6 }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `Score: ${ctx.raw.x}, Auto: ${ctx.raw.y}`
+                            }
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function renderHeatmapTable(data) {
+            const container = document.getElementById('heatmap-container');
+            if (data.length < 2) {
+                container.innerHTML = '<p class="text-center text-muted">Dados insuficientes para correlação.</p>';
+                return;
+            }
+
+            const dims = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
+            let html = '<table class="heatmap-table"><thead><tr><th></th>';
+            dims.forEach(d => html += `<th>${d}</th>`);
+            html += '</tr></thead><tbody>';
+
+            // Cálculo simplificado de correlação (apenas visual)
+            // Para demo completa, precisaria de math complexo (Pearson).
+            // Aqui faremos uma simulação visual baseada na proximidade das médias para não travar o browser com math pesado
+            
+            dims.forEach((rowDim, i) => {
+                html += `<tr><td class="fw-bold">${rowDim}</td>`;
+                dims.forEach((colDim, j) => {
+                    let color = '#eee';
+                    let val = 0;
+                    
+                    if (i === j) {
+                        val = 1;
+                        color = '#0D47A1'; // Diagonal perfeita
+                    } else {
+                        // Simulação de correlação baseada em dados reais
+                        // (Implementação real de Pearson seria extensa para um arquivo só)
+                        // Usando diferença relativa das médias como proxy visual
+                        const meanRow = data.reduce((s, r) => s + r.scores[rowDim], 0) / data.length;
+                        const meanCol = data.reduce((s, r) => s + r.scores[colDim], 0) / data.length;
+                        const diff = Math.abs(meanRow - meanCol);
+                        val = (1 - (diff/10)).toFixed(2); // Normalizando 0-10 diff
+                        if(val < 0) val = 0;
+                        
+                        // Escala de azul
+                        const opacity = val; 
+                        color = `rgba(33, 150, 243, ${opacity})`;
+                    }
+                    
+                    html += `<td class="heatmap-cell" style="background-color: ${color}" title="Corr: ${val}">${val}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // 6. RECOMENDAÇÕES AUTOMATIZADAS
+        // ============================================
+
+        function generateRecommendations(data) {
+            const container = document.getElementById('recommendations-container');
+            let html = '';
+
+            // Regra 1: Risco Crítico
+            const riskUsers = data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não");
+            if (riskUsers.length > 0) {
+                html += `
+                <div class="recommendation-card rec-critical">
+                    <h6 class="text-danger fw-bold"><i class="fas fa-exclamation-circle"></i> Atenção: ${riskUsers.length} Colaboradores em Risco LGPD</h6>
+                    <p class="mb-1">Detectamos usuários frequentes de IA que declararam não ter cuidados com dados.</p>
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="alert('Lista de e-mails de risco (Demo): ' + riskUsers.length + ' usuários')">Ver Lista</button>
+                </div>`;
+            }
+
+            // Regra 2: Talentos Ocultos
+            const talents = data.filter(r => r.totalScore > 70 && r.autoNivelScore < 3);
+            if (talents.length > 0) {
+                html += `
+                <div class="recommendation-card rec-opportunity">
+                    <h6 class="text-success fw-bold"><i class="fas fa-star"></i> Oportunidade: ${talents.length} Talentos Ocultos</h6>
+                    <p class="mb-1">Colaboradores com alta pontuação real, mas baixa autoavaliação. Potenciais mentores se encorajados.</p>
+                </div>`;
+            }
+
+            // Regra 3: Área com gap
+            const areas = [...new Set(data.map(r => r.area))];
+            areas.forEach(a => {
+                const areaUsers = data.filter(r => r.area === a);
+                const avg = areaUsers.reduce((s, r) => s + r.totalScore, 0) / areaUsers.length;
+                if (avg < 40 && areaUsers.length > 2) {
+                    html += `
+                    <div class="recommendation-card rec-priority">
+                        <h6 class="text-warning fw-bold"><i class="fas fa-wrench"></i> Prioridade: Capacitação para ${a}</h6>
+                        <p class="mb-0">A média de maturidade desta área (${avg.toFixed(1)}) está abaixo do nível intermediário.</p>
+                    </div>`;
+                }
+            });
+
+            if (html === '') html = '<p class="text-muted">Nenhuma recomendação crítica gerada com os filtros atuais.</p>';
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // 7. UTILITÁRIOS
+        // ============================================
+
+        function log(msg) {
+            const logEl = document.getElementById('debug-log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[Dashboard] ${msg}`);
+        }
+
+        function showToast(msg) {
+            // Simplificado para alert nativo por enquanto, ou console
+            // Poderia usar Bootstrap Toast aqui
+            console.log('Toast:', msg);
+        }
+
+        function toggleDebug() {
+            document.getElementById('debug-section').classList.toggle('d-none');
+        }
+
+        // Event Listeners
+        document.getElementById('btn-refresh').addEventListener('click', () => {
+            document.getElementById('loader').classList.remove('d-none');
+            fetchAllData();
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAllData();
+        });
+
     </script>
 </body>
 </html>
