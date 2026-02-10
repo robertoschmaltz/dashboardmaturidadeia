@@ -15,7 +15,6 @@
             --color-advanced: #4CAF50;
             --color-intermediate: #FF9800;
             --color-beginner: #F44336;
-            --color-accent: #2196F3;
             --color-bg: #f8f9fa;
             --color-card: #ffffff;
             --color-text: #333333;
@@ -26,34 +25,24 @@
             font-family: 'Roboto', 'Segoe UI', sans-serif;
             background-color: var(--color-bg);
             color: var(--color-text);
-            padding-top: 220px; /* Espaço para o header fixo */
+            padding-top: 0;
         }
 
-        /* Header e Filtros */
-        .fixed-header {
-            position: fixed;
+        /* Classes Utilitárias */
+        .d-none { display: none !important; }
+        .cursor-pointer { cursor: pointer; }
+
+        /* Header Fixo e Layout */
+        .sticky-top-custom {
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
+            z-index: 1020;
             background: white;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 15px 20px;
+            margin-bottom: 20px;
         }
 
-        .filter-container {
-            background-color: #f1f3f5;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .form-select-sm, .form-control-sm {
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-        }
-
-        /* Cards e Layout */
         .card-custom {
             background: var(--color-card);
             border: none;
@@ -64,37 +53,32 @@
             padding: 20px;
         }
         
-        .card-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        }
+        .kpi-value { font-size: 1.8rem; font-weight: 700; }
+        .kpi-label { font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-sec); }
+        .chart-container { position: relative; height: 300px; width: 100%; }
 
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--color-text);
+        /* Tabela Personalizada */
+        .table-custom th {
+            background-color: #f1f3f5;
+            cursor: pointer;
+            user-select: none;
         }
+        .table-custom th:hover { background-color: #e9ecef; }
+        .sort-icon { font-size: 0.8em; margin-left: 5px; color: #999; }
 
-        .kpi-label {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--color-text-sec);
-            margin-bottom: 5px;
+        /* Loader */
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.95);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
-
-        .kpi-trend {
-            font-size: 0.8rem;
-            margin-top: 5px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-
-        /* Cores de Status */
+        
+        /* Cores KPI */
         .text-success-custom { color: var(--color-advanced) !important; }
         .text-warning-custom { color: var(--color-intermediate) !important; }
         .text-danger-custom { color: var(--color-beginner) !important; }
@@ -102,46 +86,7 @@
         .bg-warning-custom { background-color: var(--color-intermediate) !important; }
         .bg-danger-custom { background-color: var(--color-beginner) !important; }
 
-        /* Componentes Específicos */
-        .loader-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.9);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .heatmap-table {
-            width: 100%;
-            font-size: 0.75rem;
-            border-collapse: separate;
-            border-spacing: 2px;
-        }
-        .heatmap-cell {
-            text-align: center;
-            padding: 8px;
-            border-radius: 4px;
-            color: white;
-            font-weight: bold;
-        }
-
-        .recommendation-card {
-            border-left: 5px solid;
-            margin-bottom: 10px;
-            padding: 15px;
-            background: white;
-            border-radius: 4px;
-        }
-        .rec-critical { border-color: var(--color-beginner); }
-        .rec-priority { border-color: var(--color-intermediate); }
-        .rec-opportunity { border-color: var(--color-advanced); }
-
-        /* Ajustes Mobile */
         @media (max-width: 991px) {
-            body { padding-top: 260px; } /* Mais espaço para filtros empilhados */
             .chart-container { height: 250px; }
         }
     </style>
@@ -150,431 +95,337 @@
 
     <div id="loader" class="loader-overlay">
         <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
-        <h5 class="mt-3">Carregando e Processando Dados...</h5>
-        <p class="text-muted small">Conectando ao Google Sheets</p>
+        <h5 class="mt-3">Carregando Dados...</h5>
     </div>
 
-    <header class="fixed-header">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <h4 class="m-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>Dashboard de Maturidade em IA</h4>
-                <small class="text-muted" id="last-update-txt">Carregando...</small>
-            </div>
-            <div>
-                <button class="btn btn-outline-primary btn-sm me-2" onclick="toggleDebug()"><i class="fas fa-bug"></i> Logs</button>
-                <button class="btn btn-primary btn-sm" id="btn-refresh"><i class="fas fa-sync-alt me-1"></i> Atualizar Dados</button>
-            </div>
-        </div>
-
-        <div class="filter-container row g-2">
-            <div class="col-md-3 col-6">
-                <select id="filter-area" class="form-select form-select-sm" onchange="applyFilters()">
-                    <option value="all">Todas as Áreas</option>
-                </select>
-            </div>
-            <div class="col-md-3 col-6">
-                <select id="filter-vinculo" class="form-select form-select-sm" onchange="applyFilters()">
-                    <option value="all">Todos os Vínculos</option>
-                </select>
-            </div>
-            <div class="col-md-3 col-6">
-                <select id="filter-faixa" class="form-select form-select-sm" onchange="applyFilters()">
-                    <option value="all">Todas Faixas Etárias</option>
-                </select>
-            </div>
-            <div class="col-md-3 col-6">
-                <input type="text" id="filter-email" class="form-control form-control-sm" placeholder="🔍 Buscar E-mail..." oninput="applyFilters()">
-            </div>
-            <div class="col-12 text-end">
-                <small class="text-muted me-2" id="filter-count">Exibindo todos os registros</small>
-                <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="resetFilters()">Limpar Filtros</button>
-            </div>
-        </div>
+    <div id="view-main">
         
-        <div id="validation-alert" class="alert alert-warning py-1 mt-2 mb-0 d-none" role="alert">
-            <small><i class="fas fa-exclamation-triangle me-1"></i> <span id="validation-msg"></span></small>
+        <header class="sticky-top-custom">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="m-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>Dashboard de Maturidade em IA</h4>
+                    <small class="text-muted last-update-txt">Carregando...</small>
+                </div>
+                <div>
+                    <button class="btn btn-outline-dark btn-sm me-2" onclick="switchView('tracks')">
+                        <i class="fas fa-map-signs me-1"></i> Distribuição das Trilhas
+                    </button>
+                    <button class="btn btn-primary btn-sm btn-refresh"><i class="fas fa-sync-alt me-1"></i> Atualizar</button>
+                </div>
+            </div>
+
+            <div class="card bg-light p-3">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">1. Área</label>
+                        <select id="filter-area" class="form-select form-select-sm" onchange="applyFiltersMain()">
+                            <option value="all">Todas as Áreas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">2. Vínculo</label>
+                        <select id="filter-vinculo-d" class="form-select form-select-sm" onchange="applyFiltersMain()">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">3. Vinculação</label>
+                        <select id="filter-vinculo-h" class="form-select form-select-sm" onchange="applyFiltersMain()">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">4. Busca (Nome/Email)</label>
+                        <input type="text" id="filter-search" class="form-control form-control-sm" placeholder="Digite para buscar..." oninput="applyFiltersMain()">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid pb-5">
+            <section class="row g-3 mb-4" id="kpi-section-main"></section>
+
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Análise Comportamental</h5>
+            <section class="row g-3 mb-4">
+                <div class="col-md-4"><div class="card-custom"><h6 class="fw-bold">Maturidade</h6><div class="chart-container"><canvas id="chart1"></canvas></div></div></div>
+                <div class="col-md-4"><div class="card-custom"><h6 class="fw-bold">Top Ferramentas</h6><div class="chart-container"><canvas id="chart2"></canvas></div></div></div>
+                <div class="col-md-4"><div class="card-custom"><h6 class="fw-bold">Frequência</h6><div class="chart-container"><canvas id="chart3"></canvas></div></div></div>
+            </section>
+
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Diagnóstico de Competências</h5>
+            <section class="row g-3 mb-4">
+                <div class="col-lg-6"><div class="card-custom"><h6 class="fw-bold">Radar (P1-P12)</h6><div class="chart-container"><canvas id="chart5"></canvas></div></div></div>
+                <div class="col-lg-6"><div class="card-custom"><h6 class="fw-bold">Histograma</h6><div class="chart-container"><canvas id="chart6"></canvas></div></div></div>
+            </section>
+
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Estratégia e Desenvolvimento</h5>
+            <section class="row g-3 mb-4">
+                <div class="col-lg-6"><div class="card-custom"><h6 class="fw-bold">Áreas x Conhecimento</h6><div class="chart-container"><canvas id="chart4"></canvas></div></div></div>
+                <div class="col-lg-6"><div class="card-custom"><h6 class="fw-bold">Trilhas Sugeridas</h6><div class="chart-container"><canvas id="chart8"></canvas></div></div></div>
+            </section>
+             <h5 class="mb-3 border-bottom pb-2 text-primary">Recomendações IA</h5>
+             <div id="recommendations-container"></div>
         </div>
-    </header>
+    </div>
 
-    <div class="container-fluid pb-5">
+    <div id="view-tracks" class="d-none">
         
-        <section class="row g-3 mb-4">
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center">
-                    <div class="kpi-label">Respondentes</div>
-                    <div class="kpi-value" id="kpi-total">0</div>
-                    <div class="kpi-trend text-muted"><i class="fas fa-users"></i> Total</div>
+        <header class="sticky-top-custom border-bottom border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="m-0 fw-bold"><i class="fas fa-map-signs text-warning me-2"></i>Distribuição das Trilhas</h4>
+                    <small class="text-muted last-update-txt">Carregando...</small>
+                </div>
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="switchView('main')">
+                        <i class="fas fa-arrow-left me-1"></i> Voltar ao Dashboard
+                    </button>
+                    <button class="btn btn-primary btn-sm btn-refresh"><i class="fas fa-sync-alt me-1"></i> Atualizar</button>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center">
-                    <div class="kpi-label">Maturidade Global</div>
-                    <div class="kpi-value" id="kpi-maturidade">0.0</div>
-                    <div class="progress mt-2" style="height: 6px;">
-                        <div id="prog-maturidade" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center">
-                    <div class="kpi-label">Taxa de Adoção</div>
-                    <div class="kpi-value" id="kpi-adocao">0%</div>
-                    <div class="kpi-trend" id="trend-adocao">Contato com IA</div>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center">
-                    <div class="kpi-label">Conformidade Dados</div>
-                    <div class="kpi-value" id="kpi-lgpd">0%</div>
-                    <div class="kpi-trend" id="trend-lgpd">Uso Seguro</div>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center">
-                    <div class="kpi-label">Prontidão (IPO)</div>
-                    <div class="kpi-value" id="kpi-ipo">0</div>
-                    <div class="kpi-trend" id="trend-ipo">Índice Geral</div>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card-custom text-center border-danger">
-                    <div class="kpi-label text-danger">Risco Crítico</div>
-                    <div class="kpi-value text-danger" id="kpi-risco">0%</div>
-                    <div class="kpi-trend text-danger">Uso s/ Cuidado</div>
-                </div>
-            </div>
-        </section>
 
-        <h5 class="mb-3 border-bottom pb-2 text-primary">Análise Comportamental</h5>
-        <section class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card-custom">
-                    <h6 class="fw-bold mb-3">Distribuição de Maturidade</h6>
-                    <div class="chart-container">
-                        <canvas id="chart1"></canvas>
+            <div class="card bg-light p-3">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">1. Área</label>
+                        <select id="filter-tracks-area" class="form-select form-select-sm" onchange="applyFiltersTracks()">
+                            <option value="all">Todas as Áreas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">2. Vínculo</label>
+                        <select id="filter-tracks-vinculo-d" class="form-select form-select-sm" onchange="applyFiltersTracks()">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">3. Vinculação</label>
+                        <select id="filter-tracks-vinculo-h" class="form-select form-select-sm" onchange="applyFiltersTracks()">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">4. Nível de Maturidade</label>
+                        <select id="filter-tracks-maturidade" class="form-select form-select-sm" onchange="applyFiltersTracks()">
+                            <option value="all">Todos os Níveis</option>
+                        </select>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card-custom">
-                    <h6 class="fw-bold mb-3">Top 5 Ferramentas</h6>
-                    <div class="chart-container">
-                        <canvas id="chart2"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card-custom">
-                    <h6 class="fw-bold mb-3">Frequência de Uso</h6>
-                    <div class="chart-container">
-                        <canvas id="chart3"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
+        </header>
 
-        <h5 class="mb-3 border-bottom pb-2 text-primary">Diagnóstico de Competências</h5>
-        <section class="row g-3 mb-4">
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <div class="d-flex justify-content-between">
-                        <h6 class="fw-bold">Radar de Competências (P1-P12)</h6>
-                        <small class="text-muted">Comparativo Média Global</small>
-                    </div>
-                    <div class="chart-container" style="height: 350px;">
-                        <canvas id="chart5"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <h6 class="fw-bold">Histograma de Pontuação Total</h6>
-                    <div class="chart-container" style="height: 300px;">
-                        <canvas id="chart6"></canvas>
-                    </div>
-                    <div class="mt-3 p-2 bg-light rounded border border-info">
-                        <small id="insight-histograma"><i class="fas fa-lightbulb text-warning me-1"></i> Analisando dados...</small>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <div class="container-fluid pb-5">
+            <section class="row g-3 mb-4" id="kpi-section-tracks"></section>
 
-        <h5 class="mb-3 border-bottom pb-2 text-primary">Estratégia e Desenvolvimento</h5>
-        <section class="row g-3 mb-4">
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <h6 class="fw-bold">Áreas x Nível de Conhecimento</h6>
-                    <div class="chart-container">
-                        <canvas id="chart4"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <h6 class="fw-bold">Trilhas de Aprendizado Sugeridas</h6>
-                    <div class="chart-container">
-                        <canvas id="chart8"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <h5 class="mb-3 border-bottom pb-2 text-primary">Insights Avançados</h5>
-        <section class="row g-3 mb-4">
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <h6 class="fw-bold">Matriz de Autoconhecimento</h6>
-                    <p class="small text-muted mb-2">Percepção vs. Realidade (Pontuação)</p>
-                    <div class="chart-container">
-                        <canvas id="chart9"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card-custom">
-                    <h6 class="fw-bold">Correlação de Competências (Heatmap)</h6>
-                    <div class="table-responsive mt-3" id="heatmap-container">
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Diagnóstico da Seleção</h5>
+            <section class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <div class="card-custom">
+                        <h6 class="fw-bold">Radar de Competências (Seleção Atual)</h6>
+                        <div class="chart-container">
+                            <canvas id="chartRadarTracks"></canvas>
                         </div>
-                    <small class="text-muted d-block mt-2">* Cores mais escuras indicam forte correlação entre as competências.</small>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-custom">
+                        <h6 class="fw-bold">Histograma de Pontuação Total</h6>
+                        <div class="chart-container">
+                            <canvas id="chartHistTracks"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Detalhamento dos Colaboradores</h5>
+            <div class="card-custom p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom mb-0" id="data-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('nome')">Nome <i class="fas fa-sort sort-icon"></i></th>
+                                <th onclick="sortTable('email')">E-mail <i class="fas fa-sort sort-icon"></i></th>
+                                <th onclick="sortTable('vinculoColH')">Vínculo<i class="fas fa-sort sort-icon"></i></th>
+                                <th onclick="sortTable('totalScore')" class="text-center">Pontuação <i class="fas fa-sort sort-icon"></i></th>
+                                <th onclick="sortTable('maturidade')" class="text-center">Nível Maturidade <i class="fas fa-sort sort-icon"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+                <div class="p-2 text-end text-muted small bg-light">
+                    <span id="table-count">0</span> registros encontrados
                 </div>
             </div>
-        </section>
-
-        <section class="mb-5">
-            <h5 class="mb-3"><i class="fas fa-robot text-primary me-2"></i>Recomendações Geradas por IA (Regras de Negócio)</h5>
-            <div id="recommendations-container">
-                </div>
-        </section>
-
-        <section id="debug-section" class="bg-dark text-light p-3 rounded d-none">
-            <h6>Console de Logs</h6>
-            <div id="debug-log" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.8rem;"></div>
-        </section>
-
+        </div>
     </div>
 
-    <footer class="text-center py-4 text-muted border-top">
-        <p class="mb-1">&copy; 2025 Dashboard de Maturidade em IA.</p>
-        <small>Desenvolvido para análise estratégica. Dados providos via Google Sheets API.</small>
-    </footer>
+    <template id="kpi-template">
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3">
+                <div class="kpi-label">Respondentes</div>
+                <div class="kpi-value kpi-total">0</div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3">
+                <div class="kpi-label">Média Geral</div>
+                <div class="kpi-value kpi-media">0.0</div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3">
+                <div class="kpi-label">Adoção IA</div>
+                <div class="kpi-value kpi-adocao">0%</div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3">
+                <div class="kpi-label">Segurança</div>
+                <div class="kpi-value kpi-lgpd">0%</div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3">
+                <div class="kpi-label">Prontidão (IPO)</div>
+                <div class="kpi-value kpi-ipo">0</div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <div class="card-custom text-center py-3 border-danger">
+                <div class="kpi-label text-danger">Risco Crítico</div>
+                <div class="kpi-value text-danger kpi-risco">0%</div>
+            </div>
+        </div>
+    </template>
 
     <script>
         // ============================================
-        // 1. CONFIGURAÇÃO E VARIÁVEIS GLOBAIS
+        // 1. CONFIGURAÇÃO E DADOS GLOBAIS
         // ============================================
         const SHEET_ID = '19NMA5UhmjIEGOvPuSOe2wZCII7q1nP7g8RcThDEhUXg';
-        
-        // Cores do Material Design
         const COLORS = {
-            green: '#4CAF50',
-            orange: '#FF9800',
-            red: '#F44336',
-            blue: '#2196F3',
-            grey: '#9E9E9E',
-            bg_green: 'rgba(76, 175, 80, 0.7)',
-            bg_orange: 'rgba(255, 152, 0, 0.7)',
-            bg_red: 'rgba(244, 67, 54, 0.7)',
-            bg_blue: 'rgba(33, 150, 243, 0.7)'
+            green: '#4CAF50', orange: '#FF9800', red: '#F44336', blue: '#2196F3', grey: '#9E9E9E',
+            bg_blue: 'rgba(33, 150, 243, 0.4)'
         };
 
-        // Estado Global
         let rawData = { aba1: [], aba2: [], aba3: [] };
-        let processedData = []; // Array unificado
-        let chartInstances = {}; // Armazena instâncias do Chart.js
+        let processedData = [];
+        let chartInstances = {};
+        let tableSort = { key: 'totalScore', order: 'desc' };
 
         // ============================================
-        // 2. FUNÇÕES DE BUSCA DE DADOS (ETL)
+        // 2. FETCH & PROCESSAMENTO
         // ============================================
-        
-        // Construtor de URL para exportação CSV via Visualization API (mais estável)
         function getSheetUrl(sheetName) {
             return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
         }
 
         async function fetchAllData() {
-            log('Iniciando fetch dos dados...');
             try {
-                // Fetch paralelo das 3 abas
-                const [resp1, resp2, resp3] = await Promise.all([
+                const [r1, r2, r3] = await Promise.all([
                     fetch(getSheetUrl('Respostas ao formulário 1')).then(r => r.text()),
                     fetch(getSheetUrl('Pontuação')).then(r => r.text()),
                     fetch(getSheetUrl('Classificação')).then(r => r.text())
                 ]);
 
-                // Parse CSV
-                rawData.aba1 = Papa.parse(resp1, { header: false }).data; // Header false para controlar indice
-                rawData.aba2 = Papa.parse(resp2, { header: false }).data;
-                rawData.aba3 = Papa.parse(resp3, { header: false }).data;
+                rawData.aba1 = Papa.parse(r1, { header: false }).data;
+                rawData.aba2 = Papa.parse(r2, { header: false }).data;
+                rawData.aba3 = Papa.parse(r3, { header: false }).data;
 
-                log(`Dados brutos carregados: Aba1(${rawData.aba1.length}), Aba2(${rawData.aba2.length}), Aba3(${rawData.aba3.length})`);
-                
-                // Validação de linhas
-                validateRawData();
-
-                // Processamento e Unificação
                 processData();
-
-                // Renderização Inicial
-                populateFilters();
-                updateDashboard();
+                populateAllFilters();
                 
+                if (!document.getElementById('view-main').classList.contains('d-none')) {
+                    applyFiltersMain();
+                } else {
+                    applyFiltersTracks();
+                }
+
                 document.getElementById('loader').classList.add('d-none');
-                document.getElementById('last-update-txt').innerText = 'Atualizado: ' + new Date().toLocaleTimeString();
-                showToast('Dados carregados com sucesso!');
+                document.querySelectorAll('.last-update-txt').forEach(el => el.innerText = 'Atualizado: ' + new Date().toLocaleTimeString());
 
             } catch (error) {
                 console.error(error);
-                log('ERRO FATAL: ' + error.message);
-                document.getElementById('loader').innerHTML = `<div class="text-danger text-center"><h3>Erro ao carregar dados</h3><p>${error.message}</p></div>`;
+                alert('Erro ao carregar dados: ' + error.message);
             }
         }
-
-        // ============================================
-        // 3. PROCESSAMENTO DE DADOS (LOGIC)
-        // ============================================
 
         function processData() {
             processedData = [];
             
-            // Assume linha 0 é cabeçalho. Começa do 1.
-            // Loop baseado na Aba 1 (Mestra)
             for (let i = 1; i < rawData.aba1.length; i++) {
                 const row1 = rawData.aba1[i];
-                const row2 = rawData.aba2[i]; // Mesma linha (índice)
-                const row3 = rawData.aba3[i]; // Mesma linha (índice)
+                const row2 = rawData.aba2[i];
+                const row3 = rawData.aba3[i];
 
-                // Skip se a linha estiver vazia ou sem email
                 if (!row1 || row1.length < 2 || !row1[1]) continue;
 
-                // --- Mapeamento Aba 1 ---
+                // Mapeamento
                 const email = row1[1];
-                const vinculo = row1[3];
+                const nome = row1[2];
+                const vinculoColD = row1[3] ? row1[3].trim() : "Não Informado"; // Coluna D
                 const area = row1[4];
                 const faixaEtaria = row1[6];
+                const vinculoColH = row1[7] ? row1[7].trim() : "Não Informado"; // Coluna H
                 
-                // Mapeamento Binário (Regra de Negócio)
                 const contatoTexto = row1[9] || "";
-                const contatoIA = mapContatoIA(contatoTexto);
-                
-                const nivelConhecimentoRaw = row1[11]; // Coluna L
-                const ferramentas = splitMultipleChoice(row1[12]); // Coluna M
-                const frequencia = row1[13]; // Coluna N
-                
-                const cuidadosTexto = row1[23] || ""; // Coluna X (Assumindo índice 23 base 0, verificar colunas reais se mudar)
-                // Ajuste: Coluna X é a 24ª coluna (índice 23). CSV parser pega todas.
-                const cuidadosDados = mapCuidadosDados(cuidadosTexto);
+                const contatoIA = (contatoTexto.toLowerCase().includes("já usei") || contatoTexto.toLowerCase().includes("uso")) ? "Sim" : "Não";
+                const ferramentas = row1[12] ? row1[12].split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                const frequencia = row1[13];
+                const cuidadosTexto = row1[23] || "";
+                const cuidadosDados = (cuidadosTexto.toLowerCase().includes("sim") || cuidadosTexto.toLowerCase().includes("tenho cuidado")) ? "Sim" : "Não";
 
-                // --- Mapeamento Aba 2 (Pontuações) ---
-                // Verifica se row2 existe para evitar crash
                 const scores = {};
                 let totalScore = 0;
                 if (row2) {
-                    for (let j = 0; j < 12; j++) {
-                        scores[`P${j+1}`] = parseFloat(row2[j] || 0);
-                    }
-                    totalScore = parseFloat(row2[12] || 0); // Coluna M = indice 12
+                    for (let j = 0; j < 12; j++) scores[`P${j+1}`] = parseFloat(row2[j] || 0);
+                    totalScore = parseFloat(row2[12] || 0);
                 }
 
-                // --- Mapeamento Aba 3 (Classificação) ---
-                const maturidade = row3 ? row3[0] : "Não Definido";
-                const trilha = row3 ? row3[1] : "Não Definido";
+                const maturidade = row3 ? (row3[0] || "Não Definido") : "Não Definido";
+                const trilha = row3 ? row3[1] : "Geral";
 
-                // --- Enriquecimento ---
-                // Nivel Autodeclarado (numérico 1-5)
-                const autoNivel = mapNivelAuto(nivelConhecimentoRaw);
-
-                // Objeto Unificado do Respondente
-                const respondent = {
-                    id: i,
-                    email,
-                    vinculo,
-                    area,
-                    faixaEtaria,
-                    contatoIA,      // "Sim" ou "Não"
-                    cuidadosDados,  // "Sim" ou "Não"
-                    contatoOriginal: contatoTexto,
-                    nivelConhecimento: splitMultipleChoice(nivelConhecimentoRaw),
-                    autoNivelScore: autoNivel,
-                    ferramentas,
-                    frequencia,
-                    scores,         // Objeto {P1: 8, P2: 5...}
-                    totalScore,
-                    maturidade,     // Iniciante, Interm, Avanç
-                    trilha
-                };
-
-                processedData.push(respondent);
-            }
-            
-            log(`Processamento concluído: ${processedData.length} registros válidos.`);
-        }
-
-        // --- Helpers de Regra de Negócio ---
-
-        function splitMultipleChoice(str) {
-            if (!str) return [];
-            return str.split(/[,;]/).map(s => s.trim()).filter(s => s.length > 0);
-        }
-
-        function mapContatoIA(value) {
-            const v = value.toLowerCase();
-            if (v.includes("já usei") || v.includes("uso com") || v.includes("uso frequentemente")) return "Sim";
-            return "Não"; // Default para "Nunca" e "Já ouvi falar"
-        }
-
-        function mapCuidadosDados(value) {
-            const v = value.toLowerCase();
-            // Lógica conservadora: Só é Sim se tiver palavras chaves de afirmação positiva
-            if ((v.includes("sim") || v.includes("evito") || v.includes("tenho cuidado")) && !v.includes("não sabia")) return "Sim";
-            return "Não";
-        }
-
-        function mapNivelAuto(str) {
-            if (!str) return 1;
-            const s = str.toLowerCase();
-            if (s.includes("especializ")) return 5;
-            if (s.includes("avançad")) return 4;
-            if (s.includes("intermediário")) return 3;
-            if (s.includes("básico")) return 2;
-            return 1;
-        }
-
-        // ============================================
-        // 4. VALIDAÇÃO E FILTROS
-        // ============================================
-
-        function validateRawData() {
-            const l1 = rawData.aba1.length;
-            const l2 = rawData.aba2.length;
-            const l3 = rawData.aba3.length;
-            
-            if (l1 !== l2 || l1 !== l3) {
-                const msg = `Inconsistência de linhas: Aba1(${l1}), Aba2(${l2}), Aba3(${l3}). Verifique a planilha.`;
-                document.getElementById('validation-msg').innerText = msg;
-                document.getElementById('validation-alert').classList.remove('d-none');
-                log('WARN: ' + msg);
+                processedData.push({
+                    id: i, nome, email, vinculoColD, vinculoColH, area, faixaEtaria,
+                    contatoIA, cuidadosDados, ferramentas, frequencia,
+                    scores, totalScore, maturidade, trilha
+                });
             }
         }
 
-        function populateFilters() {
+        // ============================================
+        // 3. GERENCIAMENTO DE FILTROS E VIEWS
+        // ============================================
+
+        function populateAllFilters() {
             const areas = new Set();
-            const vinculos = new Set();
-            const faixas = new Set();
+            const vinculosD = new Set();
+            const vinculosH = new Set();
+            const niveis = new Set();
 
             processedData.forEach(r => {
                 if(r.area) areas.add(r.area);
-                if(r.vinculo) vinculos.add(r.vinculo);
-                if(r.faixaEtaria) faixas.add(r.faixaEtaria);
+                if(r.vinculoColD) vinculosD.add(r.vinculoColD);
+                if(r.vinculoColH) vinculosH.add(r.vinculoColH);
+                if(r.maturidade) niveis.add(r.maturidade);
             });
 
+            // 1. DASHBOARD PRINCIPAL
             fillSelect('filter-area', areas);
-            fillSelect('filter-vinculo', vinculos);
-            fillSelect('filter-faixa', faixas);
+            fillSelect('filter-vinculo-d', vinculosD);
+            fillSelect('filter-vinculo-h', vinculosH);
+
+            // 2. PÁGINA DE TRILHAS
+            fillSelect('filter-tracks-area', areas);
+            fillSelect('filter-tracks-vinculo-d', vinculosD);
+            fillSelect('filter-tracks-vinculo-h', vinculosH);
+            fillSelect('filter-tracks-maturidade', niveis);
         }
 
         function fillSelect(id, set) {
             const sel = document.getElementById(id);
-            // Limpa mantendo a primeira opção
+            const savedVal = sel.value;
             sel.innerHTML = sel.options[0].outerHTML;
             Array.from(set).sort().forEach(val => {
                 const opt = document.createElement('option');
@@ -582,492 +433,293 @@
                 opt.innerText = val;
                 sel.appendChild(opt);
             });
+            if (Array.from(set).includes(savedVal)) sel.value = savedVal;
         }
 
-        // Retorna dados filtrados com base na UI
-        function getFilteredData() {
+        function switchView(viewName) {
+            if (viewName === 'tracks') {
+                document.getElementById('view-main').classList.add('d-none');
+                document.getElementById('view-tracks').classList.remove('d-none');
+                applyFiltersTracks();
+            } else {
+                document.getElementById('view-tracks').classList.add('d-none');
+                document.getElementById('view-main').classList.remove('d-none');
+                applyFiltersMain();
+            }
+            window.scrollTo(0,0);
+        }
+
+        // --- Lógica Filtros MAIN ---
+        function applyFiltersMain() {
             const fArea = document.getElementById('filter-area').value;
-            const fVinculo = document.getElementById('filter-vinculo').value;
-            const fFaixa = document.getElementById('filter-faixa').value;
-            const fEmail = document.getElementById('filter-email').value.toLowerCase();
+            const fVinculoD = document.getElementById('filter-vinculo-d').value;
+            const fVinculoH = document.getElementById('filter-vinculo-h').value;
+            const fSearch = document.getElementById('filter-search').value.toLowerCase();
 
-            return processedData.filter(r => {
-                const matchArea = fArea === 'all' || r.area === fArea;
-                const matchVinculo = fVinculo === 'all' || r.vinculo === fVinculo;
-                const matchFaixa = fFaixa === 'all' || r.faixaEtaria === fFaixa;
-                const matchEmail = !fEmail || r.email.toLowerCase().includes(fEmail);
-                return matchArea && matchVinculo && matchFaixa && matchEmail;
-            });
-        }
-
-        function applyFilters() {
-            updateDashboard();
-        }
-        
-        function resetFilters() {
-            document.getElementById('filter-area').value = 'all';
-            document.getElementById('filter-vinculo').value = 'all';
-            document.getElementById('filter-faixa').value = 'all';
-            document.getElementById('filter-email').value = '';
-            updateDashboard();
-        }
-
-        // ============================================
-        // 5. ATUALIZAÇÃO DO DASHBOARD (RENDER)
-        // ============================================
-
-        function updateDashboard() {
-            const data = getFilteredData();
-            document.getElementById('filter-count').innerText = `Exibindo ${data.length} de ${processedData.length}`;
-
-            // 1. Atualizar KPIs
-            renderKPIs(data);
-            
-            // 2. Atualizar Gráficos (Só renderiza se tiver dados)
-            if (data.length > 0) {
-                renderChart1_Maturity(data);
-                renderChart2_Tools(data);
-                renderChart3_Freq(data);
-                renderChart4_AreaKnowledge(data);
-                renderChart5_Radar(data);
-                renderChart6_Histogram(data);
-                renderChart8_Trilhas(data);
-                renderChart9_Scatter(data);
-                renderHeatmapTable(data);
+            const data = processedData.filter(r => {
+                const matchSearch = !fSearch || r.email.toLowerCase().includes(fSearch) || (r.nome && r.nome.toLowerCase().includes(fSearch));
                 
-                // 3. Gerar Recomendações
-                generateRecommendations(data);
-            } else {
-                // Limpar gráficos se filtro zerar
-                Object.values(chartInstances).forEach(c => c.destroy());
-                chartInstances = {};
-            }
+                return (fArea === 'all' || r.area === fArea) &&
+                       (fVinculoD === 'all' || r.vinculoColD === fVinculoD) &&
+                       (fVinculoH === 'all' || r.vinculoColH === fVinculoH) &&
+                       matchSearch;
+            });
+            renderMainDashboard(data);
         }
 
-        // --- Render KPI Functions ---
-        function renderKPIs(data) {
+        // --- Lógica Filtros TRILHAS ---
+        function applyFiltersTracks() {
+            const fArea = document.getElementById('filter-tracks-area').value;
+            const fVinculoD = document.getElementById('filter-tracks-vinculo-d').value;
+            const fVinculoH = document.getElementById('filter-tracks-vinculo-h').value;
+            const fMat = document.getElementById('filter-tracks-maturidade').value;
+
+            const data = processedData.filter(r => {
+                return (fArea === 'all' || r.area === fArea) &&
+                       (fVinculoD === 'all' || r.vinculoColD === fVinculoD) &&
+                       (fVinculoH === 'all' || r.vinculoColH === fVinculoH) &&
+                       (fMat === 'all' || r.maturidade === fMat);
+            });
+            renderTracksDashboard(data);
+        }
+
+        // ============================================
+        // 4. RENDERIZAÇÃO
+        // ============================================
+
+        function renderKPIs(data, containerId) {
+            const container = document.getElementById(containerId);
+            const template = document.getElementById('kpi-template').content.cloneNode(true);
+            
             const total = data.length;
-            const avgScore = total ? (data.reduce((sum, r) => sum + r.totalScore, 0) / total).toFixed(1) : 0;
-            
-            const countAdocao = data.filter(r => r.contatoIA === "Sim").length;
-            const pctAdocao = total ? Math.round((countAdocao / total) * 100) : 0;
-            
-            const countLGPD = data.filter(r => r.cuidadosDados === "Sim").length;
-            const pctLGPD = total ? Math.round((countLGPD / total) * 100) : 0;
-            
-            const countRisco = data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não").length;
-            const pctRisco = total ? Math.round((countRisco / total) * 100) : 0;
-            
-            // IPO Calculation
-            const ipo = Math.round((avgScore * (pctAdocao/100) * (pctLGPD/100))); 
+            const avgScore = total ? (data.reduce((s, r) => s + r.totalScore, 0) / total).toFixed(1) : 0;
+            const adocao = total ? Math.round((data.filter(r => r.contatoIA === "Sim").length / total) * 100) : 0;
+            const lgpd = total ? Math.round((data.filter(r => r.cuidadosDados === "Sim").length / total) * 100) : 0;
+            const risco = total ? Math.round((data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não").length / total) * 100) : 0;
+            const ipo = Math.round((avgScore * (adocao/100) * (lgpd/100)));
 
-            // Update DOM
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-maturidade').innerText = avgScore;
-            document.getElementById('prog-maturidade').style.width = avgScore + '%';
-            document.getElementById('prog-maturidade').className = `progress-bar ${getColorClass(avgScore)}`;
+            template.querySelector('.kpi-total').innerText = total;
+            template.querySelector('.kpi-media').innerText = avgScore;
             
-            updateKpiElement('kpi-adocao', pctAdocao + '%', pctAdocao < 50);
-            updateKpiElement('kpi-lgpd', pctLGPD + '%', pctLGPD < 70);
-            updateKpiElement('kpi-risco', pctRisco + '%', pctRisco > 10); // Risco alto é ruim
-            
-            const ipoEl = document.getElementById('kpi-ipo');
-            ipoEl.innerText = ipo;
-            ipoEl.className = `kpi-value ${ipo > 60 ? 'text-success-custom' : (ipo > 30 ? 'text-warning-custom' : 'text-danger-custom')}`;
+            const elAdocao = template.querySelector('.kpi-adocao');
+            elAdocao.innerText = adocao + '%';
+            elAdocao.className += (adocao < 50 ? ' text-danger-custom' : ' text-success-custom');
+
+            const elLgpd = template.querySelector('.kpi-lgpd');
+            elLgpd.innerText = lgpd + '%';
+            elLgpd.className += (lgpd < 70 ? ' text-danger-custom' : ' text-success-custom');
+
+            const elIpo = template.querySelector('.kpi-ipo');
+            elIpo.innerText = ipo;
+            elIpo.className += (ipo > 60 ? ' text-success-custom' : ' text-warning-custom');
+
+            const elRisco = template.querySelector('.kpi-risco');
+            elRisco.innerText = risco + '%';
+            elRisco.className = `kpi-value ${risco > 15 ? 'text-danger' : 'text-success'}`;
+
+            container.innerHTML = '';
+            container.appendChild(template);
         }
 
-        function updateKpiElement(id, text, isBad) {
-            const el = document.getElementById(id);
-            el.innerText = text;
-            if (id === 'kpi-risco') {
-                el.className = `kpi-value ${isBad ? 'text-danger' : 'text-success'}`; // Inverso para risco
-            } else {
-                el.className = `kpi-value ${isBad ? 'text-danger' : 'text-success'}`;
-            }
+        function renderMainDashboard(data) {
+            renderKPIs(data, 'kpi-section-main');
+            if(data.length === 0) return;
+            renderChartMaturity(data, 'chart1');
+            renderChartTools(data, 'chart2');
+            renderChartFreq(data, 'chart3');
+            renderChartAreas(data, 'chart4');
+            renderChartRadar(data, 'chart5');
+            renderChartHist(data, 'chart6');
+            renderChartTrilhas(data, 'chart8');
+            generateRecommendations(data);
         }
 
-        function getColorClass(score) {
-            if (score > 70) return 'bg-success-custom';
-            if (score > 40) return 'bg-warning-custom';
-            return 'bg-danger-custom';
+        function renderTracksDashboard(data) {
+            renderKPIs(data, 'kpi-section-tracks');
+            renderTable(data);
+            if(data.length === 0) return;
+            renderChartRadar(data, 'chartRadarTracks');
+            renderChartHist(data, 'chartHistTracks');
         }
 
-        // --- Chart Rendering Functions ---
-        
-        function getChartCtx(id) {
-            // Destroi chart antigo se existir
-            if (chartInstances[id]) {
-                chartInstances[id].destroy();
-            }
+        // ============================================
+        // 5. CHARTS
+        // ============================================
+        function getCtx(id) {
+            if (chartInstances[id]) chartInstances[id].destroy();
             return document.getElementById(id).getContext('2d');
         }
 
-        function renderChart1_Maturity(data) {
-            const counts = { Iniciante: 0, Intermediário: 0, Avançado: 0 };
+        function renderChartRadar(data, canvasId) {
+            const dims = Array.from({length: 12}, (_, i) => `P${i+1}`);
+            const averages = dims.map(d => (data.reduce((acc, r) => acc + (r.scores[d] || 0), 0) / data.length).toFixed(1));
+            const globalAvg = dims.map(d => (processedData.reduce((acc, r) => acc + (r.scores[d] || 0), 0) / processedData.length).toFixed(1));
+
+            chartInstances[canvasId] = new Chart(getCtx(canvasId), {
+                type: 'radar',
+                data: {
+                    labels: dims,
+                    datasets: [
+                        { label: 'Filtro Atual', data: averages, borderColor: COLORS.blue, backgroundColor: COLORS.bg_blue, fill: true },
+                        { label: 'Global', data: globalAvg, borderColor: COLORS.grey, borderDash: [5,5], fill: false }
+                    ]
+                },
+                options: { scales: { r: { min: 0, max: 10 } }, maintainAspectRatio: false }
+            });
+        }
+
+        function renderChartHist(data, canvasId) {
+            const bins = [0,0,0,0,0];
             data.forEach(r => {
-                // Normaliza string para evitar erros de case/acento
-                const mat = r.maturidade.trim();
-                if (mat.includes('Iniciante')) counts.Iniciante++;
-                else if (mat.includes('Intermediário')) counts.Intermediário++;
-                else if (mat.includes('Avançado')) counts.Avançado++;
+                if (r.totalScore <= 20) bins[0]++;
+                else if (r.totalScore <= 40) bins[1]++;
+                else if (r.totalScore <= 60) bins[2]++;
+                else if (r.totalScore <= 80) bins[3]++;
+                else bins[4]++;
             });
 
-            chartInstances['chart1'] = new Chart(getChartCtx('chart1'), {
-                type: 'doughnut',
+            chartInstances[canvasId] = new Chart(getCtx(canvasId), {
+                type: 'bar',
                 data: {
-                    labels: ['Iniciante', 'Intermediário', 'Avançado'],
-                    datasets: [{
-                        data: [counts.Iniciante, counts.Intermediário, counts.Avançado],
-                        backgroundColor: [COLORS.red, COLORS.orange, COLORS.green]
-                    }]
+                    labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+                    datasets: [{ label: 'Pessoas', data: bins, backgroundColor: [COLORS.red, COLORS.red, COLORS.orange, COLORS.green, COLORS.green] }]
                 },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderChartMaturity(data, id) {
+            const counts = { Iniciante: 0, Intermediário: 0, Avançado: 0 };
+            data.forEach(r => {
+                if(r.maturidade.includes('Iniciante')) counts.Iniciante++;
+                else if(r.maturidade.includes('Intermediário')) counts.Intermediário++;
+                else if(r.maturidade.includes('Avançado')) counts.Avançado++;
+            });
+            chartInstances[id] = new Chart(getCtx(id), {
+                type: 'doughnut',
+                data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [COLORS.red, COLORS.orange, COLORS.green] }] },
                 options: { maintainAspectRatio: false }
             });
         }
 
-        function renderChart2_Tools(data) {
-            const toolsCount = {};
-            data.forEach(r => {
-                r.ferramentas.forEach(f => {
-                    toolsCount[f] = (toolsCount[f] || 0) + 1;
-                });
-            });
-            // Top 5
-            const sorted = Object.entries(toolsCount).sort((a,b) => b[1] - a[1]).slice(0, 5);
-            
-            chartInstances['chart2'] = new Chart(getChartCtx('chart2'), {
+        function renderChartTools(data, id) {
+            const tc = {};
+            data.forEach(r => r.ferramentas.forEach(f => tc[f] = (tc[f]||0)+1));
+            const sorted = Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+            chartInstances[id] = new Chart(getCtx(id), {
                 type: 'bar',
-                data: {
-                    labels: sorted.map(i => i[0]),
-                    datasets: [{
-                        label: 'Usuários',
-                        data: sorted.map(i => i[1]),
-                        backgroundColor: COLORS.blue,
-                        borderRadius: 4
-                    }]
-                },
+                data: { labels: sorted.map(i=>i[0]), datasets: [{ label: 'Uso', data: sorted.map(i=>i[1]), backgroundColor: COLORS.blue }] },
                 options: { indexAxis: 'y', maintainAspectRatio: false }
             });
         }
 
-        function renderChart3_Freq(data) {
-            const freqCount = {};
-            data.forEach(r => {
-                const f = r.frequencia || "Não informado";
-                freqCount[f] = (freqCount[f] || 0) + 1;
-            });
-            
-            chartInstances['chart3'] = new Chart(getChartCtx('chart3'), {
+        function renderChartFreq(data, id) {
+            const fc = {};
+            data.forEach(r => fc[r.frequencia||"N/A"] = (fc[r.frequencia||"N/A"]||0)+1);
+            chartInstances[id] = new Chart(getCtx(id), {
                 type: 'pie',
-                data: {
-                    labels: Object.keys(freqCount),
-                    datasets: [{
-                        data: Object.values(freqCount),
-                        backgroundColor: [COLORS.blue, COLORS.bg_blue, '#64B5F6', '#BBDEFB', '#E3F2FD']
-                    }]
-                },
+                data: { labels: Object.keys(fc), datasets: [{ data: Object.values(fc), backgroundColor: [COLORS.blue, '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD'] }] },
                 options: { maintainAspectRatio: false }
             });
         }
 
-        function renderChart4_AreaKnowledge(data) {
-            // Stacked Bar: X = Área, Y = Count, Stacks = Maturidade
+        function renderChartAreas(data, id) {
             const areas = [...new Set(data.map(r => r.area))];
-            const dataset = {
+            const ds = {
                 Iniciante: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Iniciante')).length),
                 Intermediário: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Intermediário')).length),
                 Avançado: areas.map(a => data.filter(r => r.area === a && r.maturidade.includes('Avançado')).length)
             };
-
-            chartInstances['chart4'] = new Chart(getChartCtx('chart4'), {
+            chartInstances[id] = new Chart(getCtx(id), {
                 type: 'bar',
                 data: {
                     labels: areas,
                     datasets: [
-                        { label: 'Iniciante', data: dataset.Iniciante, backgroundColor: COLORS.red },
-                        { label: 'Intermediário', data: dataset.Intermediário, backgroundColor: COLORS.orange },
-                        { label: 'Avançado', data: dataset.Avançado, backgroundColor: COLORS.green }
+                        { label: 'Iniciante', data: ds.Iniciante, backgroundColor: COLORS.red },
+                        { label: 'Intermediário', data: ds.Intermediário, backgroundColor: COLORS.orange },
+                        { label: 'Avançado', data: ds.Avançado, backgroundColor: COLORS.green }
                     ]
-                },
-                options: {
-                    scales: { x: { stacked: true }, y: { stacked: true } },
-                    maintainAspectRatio: false
-                }
+                }, options: { scales: { x: { stacked: true }, y: { stacked: true } }, maintainAspectRatio: false }
             });
         }
 
-        function renderChart5_Radar(data) {
-            const dims = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
-            // Labels amigáveis (Exemplo genérico, ajustar conforme negócio real se tiver info)
-            const labels = dims; 
-
-            // Média Seleção Atual
-            const averages = dims.map(d => {
-                const sum = data.reduce((acc, r) => acc + (r.scores[d] || 0), 0);
-                return (sum / data.length).toFixed(1);
-            });
-
-            // Média Global (Todos os dados processados, não filtrados)
-            const globalAverages = dims.map(d => {
-                const sum = processedData.reduce((acc, r) => acc + (r.scores[d] || 0), 0);
-                return (sum / processedData.length).toFixed(1);
-            });
-
-            chartInstances['chart5'] = new Chart(getChartCtx('chart5'), {
-                type: 'radar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Seleção Atual',
-                            data: averages,
-                            borderColor: COLORS.blue,
-                            backgroundColor: COLORS.bg_blue,
-                            fill: true
-                        },
-                        {
-                            label: 'Média Global',
-                            data: globalAverages,
-                            borderColor: COLORS.grey,
-                            borderDash: [5, 5],
-                            fill: false
-                        }
-                    ]
-                },
-                options: {
-                    scales: { r: { min: 0, max: 10 } },
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        function renderChart6_Histogram(data) {
-            // Bins: 0-20, 21-40, 41-60, 61-80, 81-100
-            const bins = [0,0,0,0,0];
-            data.forEach(r => {
-                const s = r.totalScore;
-                if (s <= 20) bins[0]++;
-                else if (s <= 40) bins[1]++;
-                else if (s <= 60) bins[2]++;
-                else if (s <= 80) bins[3]++;
-                else bins[4]++;
-            });
-
-            chartInstances['chart6'] = new Chart(getChartCtx('chart6'), {
+        function renderChartTrilhas(data, id) {
+            const tr = {};
+            data.forEach(r => tr[r.trilha||"Geral"] = (tr[r.trilha||"Geral"]||0)+1);
+            const sorted = Object.entries(tr).sort((a,b)=>b[1]-a[1]);
+            chartInstances[id] = new Chart(getCtx(id), {
                 type: 'bar',
-                data: {
-                    labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
-                    datasets: [{
-                        label: 'Respondentes',
-                        data: bins,
-                        backgroundColor: [COLORS.red, COLORS.red, COLORS.orange, COLORS.green, COLORS.green],
-                    }]
-                },
-                options: { maintainAspectRatio: false }
-            });
-
-            // Insight dinâmico
-            const maxBinIndex = bins.indexOf(Math.max(...bins));
-            const ranges = ['muito baixa', 'baixa', 'média', 'alta', 'muito alta'];
-            document.getElementById('insight-histograma').innerHTML = 
-                `<strong>Insight:</strong> A maior concentração de pontuações está na faixa <strong>${ranges[maxBinIndex]}</strong> (${bins[maxBinIndex]} pessoas).`;
-        }
-
-        function renderChart8_Trilhas(data) {
-            const trilhas = {};
-            data.forEach(r => {
-                const t = r.trilha || "Geral";
-                trilhas[t] = (trilhas[t] || 0) + 1;
-            });
-            
-            const sorted = Object.entries(trilhas).sort((a,b) => b[1] - a[1]);
-
-            chartInstances['chart8'] = new Chart(getChartCtx('chart8'), {
-                type: 'bar',
-                data: {
-                    labels: sorted.map(i => i[0]),
-                    datasets: [{
-                        label: 'Recomendação',
-                        data: sorted.map(i => i[1]),
-                        backgroundColor: COLORS.blue,
-                        indexAxis: 'y'
-                    }]
-                },
+                data: { labels: sorted.map(i=>i[0]), datasets: [{ label: 'Indicações', data: sorted.map(i=>i[1]), backgroundColor: COLORS.blue }] },
                 options: { indexAxis: 'y', maintainAspectRatio: false }
             });
         }
 
-        function renderChart9_Scatter(data) {
-            // X: Total Score (Real), Y: AutoNivel (1-5)
-            // R: Frequência (simulada tamanho)
-            
-            const points = data.map(r => ({
-                x: r.totalScore,
-                y: r.autoNivelScore,
-                r: 5 // Tamanho fixo por enquanto, ou basear na frequencia
-            }));
-            
-            // Cores baseadas no quadrante (Simplified logic)
-            const bgColors = points.map(p => {
-                if (p.x > 60 && p.y >= 4) return COLORS.green; // Consciente Avançado
-                if (p.x > 60 && p.y < 4) return COLORS.blue; // Talento Oculto
-                if (p.x <= 60 && p.y >= 4) return COLORS.red; // Risco Dunning-Kruger
-                return COLORS.orange; // Iniciante
-            });
+        // ============================================
+        // 6. TABELA E ORDENAÇÃO
+        // ============================================
 
-            chartInstances['chart9'] = new Chart(getChartCtx('chart9'), {
-                type: 'bubble',
-                data: {
-                    datasets: [{
-                        label: 'Respondentes',
-                        data: points,
-                        backgroundColor: bgColors
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: { title: { display: true, text: 'Pontuação Real (0-100)' }, min: 0, max: 100 },
-                        y: { title: { display: true, text: 'Autoavaliação (1-5)' }, min: 0, max: 6 }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => `Score: ${ctx.raw.x}, Auto: ${ctx.raw.y}`
-                            }
-                        }
-                    },
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        function renderHeatmapTable(data) {
-            const container = document.getElementById('heatmap-container');
-            if (data.length < 2) {
-                container.innerHTML = '<p class="text-center text-muted">Dados insuficientes para correlação.</p>';
-                return;
+        function sortTable(key) {
+            if (tableSort.key === key) {
+                tableSort.order = tableSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                tableSort.key = key;
+                tableSort.order = 'desc';
             }
-
-            const dims = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
-            let html = '<table class="heatmap-table"><thead><tr><th></th>';
-            dims.forEach(d => html += `<th>${d}</th>`);
-            html += '</tr></thead><tbody>';
-
-            // Cálculo simplificado de correlação (apenas visual)
-            // Para demo completa, precisaria de math complexo (Pearson).
-            // Aqui faremos uma simulação visual baseada na proximidade das médias para não travar o browser com math pesado
-            
-            dims.forEach((rowDim, i) => {
-                html += `<tr><td class="fw-bold">${rowDim}</td>`;
-                dims.forEach((colDim, j) => {
-                    let color = '#eee';
-                    let val = 0;
-                    
-                    if (i === j) {
-                        val = 1;
-                        color = '#0D47A1'; // Diagonal perfeita
-                    } else {
-                        // Simulação de correlação baseada em dados reais
-                        // (Implementação real de Pearson seria extensa para um arquivo só)
-                        // Usando diferença relativa das médias como proxy visual
-                        const meanRow = data.reduce((s, r) => s + r.scores[rowDim], 0) / data.length;
-                        const meanCol = data.reduce((s, r) => s + r.scores[colDim], 0) / data.length;
-                        const diff = Math.abs(meanRow - meanCol);
-                        val = (1 - (diff/10)).toFixed(2); // Normalizando 0-10 diff
-                        if(val < 0) val = 0;
-                        
-                        // Escala de azul
-                        const opacity = val; 
-                        color = `rgba(33, 150, 243, ${opacity})`;
-                    }
-                    
-                    html += `<td class="heatmap-cell" style="background-color: ${color}" title="Corr: ${val}">${val}</td>`;
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-            container.innerHTML = html;
+            applyFiltersTracks();
         }
 
-        // ============================================
-        // 6. RECOMENDAÇÕES AUTOMATIZADAS
-        // ============================================
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            document.getElementById('table-count').innerText = data.length;
+            tbody.innerHTML = '';
+
+            data.sort((a, b) => {
+                let valA = a[tableSort.key];
+                let valB = b[tableSort.key];
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return tableSort.order === 'asc' ? -1 : 1;
+                if (valA > valB) return tableSort.order === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            data.forEach(r => {
+                const tr = document.createElement('tr');
+                let badgeClass = 'bg-secondary';
+                if(r.maturidade.includes('Avançado')) badgeClass = 'bg-success';
+                else if(r.maturidade.includes('Intermediário')) badgeClass = 'bg-warning text-dark';
+                else if(r.maturidade.includes('Iniciante')) badgeClass = 'bg-danger';
+
+                tr.innerHTML = `
+                    <td>${r.nome || 'N/A'}</td>
+                    <td><small>${r.email}</small></td>
+                    <td>${r.vinculoColH}</td>
+                    <td class="text-center fw-bold">${r.totalScore.toFixed(1)}</td>
+                    <td class="text-center"><span class="badge ${badgeClass}">${r.maturidade}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
         function generateRecommendations(data) {
             const container = document.getElementById('recommendations-container');
+            const risk = data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não").length;
+            
             let html = '';
-
-            // Regra 1: Risco Crítico
-            const riskUsers = data.filter(r => r.contatoIA === "Sim" && r.cuidadosDados === "Não");
-            if (riskUsers.length > 0) {
-                html += `
-                <div class="recommendation-card rec-critical">
-                    <h6 class="text-danger fw-bold"><i class="fas fa-exclamation-circle"></i> Atenção: ${riskUsers.length} Colaboradores em Risco LGPD</h6>
-                    <p class="mb-1">Detectamos usuários frequentes de IA que declararam não ter cuidados com dados.</p>
-                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="alert('Lista de e-mails de risco (Demo): ' + riskUsers.length + ' usuários')">Ver Lista</button>
-                </div>`;
+            if(risk > 0) {
+                html += `<div class="alert alert-danger border-danger"><i class="fas fa-exclamation-triangle"></i> <strong>Risco Crítico:</strong> ${risk} usuários utilizam IA sem cuidados com dados (LGPD).</div>`;
+            } else {
+                html = '<div class="alert alert-success border-success"><i class="fas fa-check-circle"></i> Nenhum risco crítico imediato detectado nos filtros atuais.</div>';
             }
-
-            // Regra 2: Talentos Ocultos
-            const talents = data.filter(r => r.totalScore > 70 && r.autoNivelScore < 3);
-            if (talents.length > 0) {
-                html += `
-                <div class="recommendation-card rec-opportunity">
-                    <h6 class="text-success fw-bold"><i class="fas fa-star"></i> Oportunidade: ${talents.length} Talentos Ocultos</h6>
-                    <p class="mb-1">Colaboradores com alta pontuação real, mas baixa autoavaliação. Potenciais mentores se encorajados.</p>
-                </div>`;
-            }
-
-            // Regra 3: Área com gap
-            const areas = [...new Set(data.map(r => r.area))];
-            areas.forEach(a => {
-                const areaUsers = data.filter(r => r.area === a);
-                const avg = areaUsers.reduce((s, r) => s + r.totalScore, 0) / areaUsers.length;
-                if (avg < 40 && areaUsers.length > 2) {
-                    html += `
-                    <div class="recommendation-card rec-priority">
-                        <h6 class="text-warning fw-bold"><i class="fas fa-wrench"></i> Prioridade: Capacitação para ${a}</h6>
-                        <p class="mb-0">A média de maturidade desta área (${avg.toFixed(1)}) está abaixo do nível intermediário.</p>
-                    </div>`;
-                }
-            });
-
-            if (html === '') html = '<p class="text-muted">Nenhuma recomendação crítica gerada com os filtros atuais.</p>';
             container.innerHTML = html;
         }
 
-        // ============================================
-        // 7. UTILITÁRIOS
-        // ============================================
-
-        function log(msg) {
-            const logEl = document.getElementById('debug-log');
-            const time = new Date().toLocaleTimeString();
-            logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
-            logEl.scrollTop = logEl.scrollHeight;
-            console.log(`[Dashboard] ${msg}`);
-        }
-
-        function showToast(msg) {
-            // Simplificado para alert nativo por enquanto, ou console
-            // Poderia usar Bootstrap Toast aqui
-            console.log('Toast:', msg);
-        }
-
-        function toggleDebug() {
-            document.getElementById('debug-section').classList.toggle('d-none');
-        }
-
-        // Event Listeners
-        document.getElementById('btn-refresh').addEventListener('click', () => {
+        document.querySelectorAll('.btn-refresh').forEach(btn => btn.addEventListener('click', () => {
             document.getElementById('loader').classList.remove('d-none');
             fetchAllData();
-        });
+        }));
 
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchAllData();
-        });
+        document.addEventListener('DOMContentLoaded', fetchAllData);
 
     </script>
 </body>
